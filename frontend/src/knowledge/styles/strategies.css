@@ -1,0 +1,94 @@
+/* Business strategies: shared tabs and explicit empty content. */
+.strategies-page { padding-top: var(--space-12); }
+.strategies-page h1 { text-align: center; font-size: var(--font-title); font-weight: 600; }
+.strategy-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin: var(--space-8) 0; }
+.strategy-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--space-12); padding: var(--space-3) var(--space-4); border: 0; border-radius: var(--radius-control); background: var(--color-surface-muted); font-weight: 500; }
+.strategy-tabs button:hover { background: var(--color-hover); }
+.strategy-tabs button[aria-selected="true"] { background: var(--color-primary-soft); color: var(--color-primary); text-decoration: underline; text-underline-offset: var(--space-1); }
+.strategy-empty { padding: var(--space-12) var(--space-6); border-radius: var(--radius-panel); background: var(--color-surface-muted); text-align: center; }
+.strategy-empty > svg { color: var(--color-primary); }
+.strategy-empty h2 { margin-top: var(--space-4); font-size: var(--font-section); font-weight: 600; }
+.strategy-empty p { margin-top: var(--space-2); color: var(--color-secondary); }
+
+/* Shared imported strategy documents, with a compact chapter index. */
+.strategy-document-heading { padding-bottom: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.strategy-document-heading h2 { font-size: var(--font-section); font-weight: 600; }
+.strategy-document-heading p { margin-top: var(--space-2); color: var(--color-secondary); }
+.strategy-document-heading .strategy-document-source { font-size: var(--font-caption); }
+.strategy-document-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); gap: var(--space-8); margin-top: var(--space-8); align-items: start; }
+.strategy-document-contents { position: sticky; top: calc(var(--header-height) + var(--space-6)); display: grid; gap: var(--space-1); }
+.strategy-document-contents a { padding: var(--space-2); border-radius: var(--radius-control); color: var(--color-secondary); }
+.strategy-document-contents a:hover { background: var(--color-surface-muted); color: var(--color-primary); }
+.strategy-document-article { min-width: 0; line-height: 1.8; overflow-wrap: anywhere; }
+.strategy-document-article section + section { margin-top: var(--space-8); }
+.strategy-document-article h3 { margin-bottom: var(--space-3); font-size: var(--font-section); font-weight: 600; }
+.strategy-document-article p + p { margin-top: var(--space-3); }
+.strategy-document-article ul { margin: 0; padding-left: var(--space-6); }
+.strategy-document-article li + li { margin-top: var(--space-3); }
+.strategy-document-article section:focus-visible { outline: 2px solid var(--color-primary); outline-offset: var(--space-1); }
+/* Grouped playbook: method stages contain their own subsections. */
+.strategy-document-contents-grouped { display: block; max-height: calc(100vh - var(--header-height) - var(--space-12)); overflow-y: auto; }
+.strategy-index-group + .strategy-index-group { margin-top: var(--space-6); }
+.strategy-index-group a { display: block; }
+.strategy-index-group .strategy-index-parent { color: var(--color-text); font-weight: 600; }
+.strategy-index-group ul { list-style: none; margin: var(--space-1) 0 0; padding: 0 0 0 var(--space-3); }
+.strategy-document-group > h3 { padding-bottom: var(--space-3); margin-bottom: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.strategy-document-group h4 { font-size: var(--font-body); font-weight: 600; margin-bottom: var(--space-3); }
+/* Universal methodology: connected stages and their original explanation. */
+.methodology-intro { text-align: center; color: var(--color-secondary); margin-top: var(--space-3); line-height: 1.8; }
+.methodology-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: var(--space-8); align-items: start; margin-top: var(--space-8); }
+.methodology-diagram { margin: 0; }
+.methodology-diagram figcaption { color: var(--color-secondary); margin-bottom: var(--space-6); line-height: 1.8; }
+.methodology-flow { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-6); }
+.methodology-flow li { position: relative; }
+.methodology-flow button { display: flex; align-items: center; gap: var(--space-4); width: 100%; border: 0; background: var(--color-surface-muted); border-radius: var(--radius-control); padding: var(--space-4); text-align: left; }
+.methodology-flow button:hover { background: var(--color-hover); }
+.methodology-flow button[aria-pressed="true"] { background: var(--color-primary-soft); color: var(--color-primary); }
+.methodology-flow button[aria-pressed="true"] strong { text-decoration: underline; text-underline-offset: var(--space-1); }
+.methodology-node-icon { display: flex; flex-shrink: 0; }
+.methodology-step { display: block; font-size: var(--font-caption); margin-bottom: var(--space-1); }
+.methodology-flow strong { display: block; font-size: var(--font-section); font-weight: 500; }
+.methodology-connector { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); height: var(--space-6); color: var(--color-secondary); }
+.methodology-return { display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-6); width: 100%; border: 1px solid var(--color-secondary); border-radius: var(--radius-control); padding: var(--space-3); background: var(--color-surface); text-align: left; }
+.methodology-return:hover { background: var(--color-hover); }
+.methodology-detail { padding: var(--space-8); border-radius: var(--radius-panel); background: var(--color-surface-muted); line-height: 1.8; }
+.methodology-detail > svg { color: var(--color-primary); }
+.methodology-detail h2 { font-size: var(--font-title); font-weight: 600; margin: var(--space-2) 0 var(--space-6); }
+.methodology-position { color: var(--color-secondary); margin-top: var(--space-6); font-size: var(--font-caption); }
+.methodology-rationale { margin-top: var(--space-8); line-height: 1.8; }
+.methodology-rationale h2, .methodology-instructions h3 { font-size: var(--font-section); font-weight: 600; }
+.methodology-rationale p { margin-top: var(--space-3); }
+.methodology-instructions { margin-top: var(--space-6); padding-top: var(--space-6); border-top: 1px solid var(--color-border); }
+.methodology-instructions h3 { margin-bottom: var(--space-2); }
+.methodology-instructions h3:not(:first-child) { margin-top: var(--space-6); }
+.methodology-instructions ul { margin: 0; padding-left: var(--space-6); }
+.methodology-instructions li + li { margin-top: var(--space-2); }
+/* Strategy tools stay separate from the unchanged source documents. */
+.strategy-tool { margin-bottom: var(--space-8); }
+.strategy-tool-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-4); }
+.strategy-tool h2 { font-size: var(--font-section); font-weight: 600; }
+.strategy-tool-heading p, .strategy-tool-note { margin-top: var(--space-2); color: var(--color-secondary); line-height: 1.7; }
+.strategy-tool-heading .text-button { flex-shrink: 0; }
+.strategy-tool-note { font-size: var(--font-caption); }
+.selection-flow-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: var(--space-6); margin: var(--space-6) 0; align-items: start; }
+.selection-flow { display: grid; gap: var(--space-6); list-style: none; margin: 0; padding: 0; }
+.selection-flow li { position: relative; }
+.selection-flow-connector { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); height: var(--space-6); color: var(--color-secondary); }
+.selection-flow button { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); width: 100%; height: 100%; min-height: var(--space-12); border: 0; border-radius: var(--radius-control); padding: var(--space-3) var(--space-4); text-align: left; background: var(--color-surface-muted); }
+.selection-flow button:hover { background: var(--color-hover); }
+.selection-flow button[aria-pressed="true"] { background: var(--color-primary-soft); color: var(--color-primary); font-weight: 600; }
+.selection-flow-label { flex: 1; }
+.selection-flow button[aria-pressed="true"] .selection-flow-label { text-decoration: underline; text-underline-offset: var(--space-1); }
+.selection-flow-detail { position: sticky; top: calc(var(--header-height) + var(--space-6)); padding: var(--space-6); border-radius: var(--radius-panel); background: var(--color-surface-muted); line-height: 1.8; }
+.selection-flow-detail h3 { margin-bottom: var(--space-3); font-size: var(--font-section); font-weight: 600; }
+.selection-flow-detail ul { margin: 0; padding-left: var(--space-6); }
+.selection-flow-detail li + li, .selection-flow-detail p + p { margin-top: var(--space-2); }
+@media (max-width: 720px) {
+  .strategy-document-contents-grouped { max-height: none; overflow-y: visible; }
+  .methodology-layout { grid-template-columns: 1fr; }
+  .methodology-detail { position: static; }
+  .strategy-document-layout { grid-template-columns: 1fr; gap: var(--space-6); }
+  .strategy-document-contents { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .selection-flow-layout { grid-template-columns: 1fr; }
+  .selection-flow-detail { position: static; }
+}

@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopDesk 视觉风格打样 · 四选一</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+
+  /* ============ 顶部风格切换器（不属于任何方案） ============ */
+  .switcher {
+    position: sticky; top: 0; z-index: 100;
+    background: #0f172a; color: #fff;
+    padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .switcher h1 { font-size: 14px; font-weight: 700; margin-right: 8px; }
+  .switcher .tab {
+    padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    background: rgba(255,255,255,.08); color: #cbd5e1; border: 1px solid transparent;
+    cursor: pointer; transition: all .15s;
+  }
+  .switcher .tab.active { background: #fff; color: #0f172a; }
+  .switcher .desc { font-size: 12px; color: #94a3b8; margin-left: auto; }
+  .theme { display: none; }
+  .theme.show { display: block; }
+
+  /* ==================================================================
+     方案 A · 冷灰专业 Slate Pro（Linear / Vercel 感）
+     规则：深色实心主按钮 + 极轻边框 + 无阴影 + 灰阶层级 + 克制状态色
+  ================================================================== */
+  .theme-a {
+    --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --border-strong: #cbd5e1;
+    --text-1: #0f172a; --text-2: #475569; --text-3: #94a3b8;
+    --primary: #0f172a; --primary-hover: #1e293b; --accent: #2563eb;
+    --ok-bg:#ecfdf5; --ok-fg:#047857; --warn-bg:#fffbeb; --warn-fg:#b45309; --err-bg:#fef2f2; --err-fg:#b91c1c;
+    --radius: 8px; background: var(--bg); color: var(--text-1);
+    font-size: 13px; line-height: 1.5; min-height: 100vh;
+  }
+  .theme-a .layout { display: flex; min-height: 100vh; }
+  .theme-a .side { width: 220px; background: var(--card); border-right: 1px solid var(--border); padding: 16px 12px; flex-shrink: 0; }
+  .theme-a .side .brand { font-size: 14px; font-weight: 800; padding: 4px 10px 16px; color: var(--text-1); }
+  .theme-a .nav-group { font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--text-3); text-transform: uppercase; padding: 14px 10px 6px; }
+  .theme-a .nav-item { padding: 8px 10px; border-radius: 6px; color: var(--text-2); font-weight: 500; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .theme-a .nav-item:hover { background: var(--bg); }
+  .theme-a .nav-item.active { background: var(--primary); color: #fff; }
+  .theme-a .nav-tag { font-size: 10px; font-weight: 600; color: var(--text-3); background: var(--bg); padding: 2px 7px; border-radius: 5px; border: 1px solid var(--border); }
+  .theme-a .nav-item.active .nav-tag { background: rgba(255,255,255,.15); color: #cbd5e1; border-color: transparent; }
+  .theme-a .main { flex: 1; padding: 28px 32px; max-width: 1080px; }
+  .theme-a .page-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+  .theme-a h2 { font-size: 18px; font-weight: 700; }
+  .theme-a .sub { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+  .theme-a .btn { font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--card); color: var(--text-2); cursor: pointer; }
+  .theme-a .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .theme-a .btn-primary:hover { background: var(--primary-hover); }
+  .theme-a .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+  .theme-a .stat { background: var(--card); padding: 16px; }
+  .theme-a .stat .k { font-size: 11px; color: var(--text-3); font-weight: 500; }
+  .theme-a .stat .v { font-size: 22px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .theme-a .stat .v small { font-size: 11px; font-weight: 500; color: var(--text-3); }
+  .theme-a .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; }
+  .theme-a .spu-head { padding: 18px 20px; display: flex; gap: 16px; align-items: center; }
+  .theme-a .spu-img { width: 56px; height: 56px; border-radius: 6px; border: 1px solid var(--border); object-fit: cover; background: var(--bg); }
+  .theme-a .spu-title { font-size: 14px; font-weight: 700; }
+  .theme-a .spu-code { font-size: 11px; color: var(--text-3); font-family: ui-monospace, monospace; margin-top: 2px; }
+  .theme-a .meta-row { display: flex; gap: 18px; margin-top: 6px; font-size: 11px; color: var(--text-2); }
+  .theme-a .spu-right { margin-left: auto; text-align: right; }
+  .theme-a .price { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .theme-a .stock-pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 5px; margin-top: 6px; }
+  .theme-a .stock-ok { background: var(--ok-bg); color: var(--ok-fg); }
+  .theme-a .stock-low { background: var(--warn-bg); color: var(--warn-fg); }
+  .theme-a .spu-body { border-top: 1px solid var(--border); padding: 18px 20px; background: #fcfcfd; }
+  .theme-a .sec-label { font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .theme-a .sec-label .count { color: var(--text-3); font-weight: 500; }
+  .theme-a .thumbs { display: flex; gap: 10px; margin-bottom: 20px; }
+  .theme-a .thumb { width: 64px; }
+  .theme-a .thumb img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+  .theme-a .thumb span { display: block; font-size: 9px; color: var(--text-3); margin-top: 4px; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .theme-a table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .theme-a th { background: var(--card); font-size: 10px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+  .theme-a td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .theme-a tr:last-child td { border-bottom: none; }
+  .theme-a .row-head { font-weight: 700; background: #fcfcfd; }
+  .theme-a .cell { display: flex; gap: 10px; align-items: center; cursor: pointer; padding: 4px; border-radius: 6px; }
+  .theme-a .cell:hover { background: var(--bg); }
+  .theme-a .cell img { width: 36px; height: 36px; border-radius: 5px; border: 1px solid var(--border); object-fit: cover; }
+  .theme-a .cell .pcode { font-size: 10px; color: var(--text-3); font-family: ui-monospace, monospace; }
+  .theme-a .cell .pprice { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .theme-a .cell .pstock { font-size: 11px; color: var(--text-2); }
+  .theme-a .cell .pstock.low { color: var(--warn-fg); font-weight: 600; }
+  .theme-a .cell-add { border: 1px dashed var(--border-strong); border-radius: 6px; height: 56px; display: flex; align-items: center; justify-content: center; color: var(--text-3); cursor: pointer; }
+  .theme-a .cell-add:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+
+  /* ==================================================================
+     方案 B · 明亮靛蓝 Indigo Light（Stripe 感，现有品牌收敛版）
+     规则：indigo 实心主按钮 + 柔和阴影 + 大圆角大留白 + 浅底状态色
+  ================================================================== */
+  .theme-b {
+    --bg: #f6f7fb; --card: #ffffff; --border: #e9ebf2;
+    --text-1: #1e2435; --text-2: #5b6478; --text-3: #9aa2b5;
+    --primary: #4f46e5; --primary-hover: #4338ca; --primary-soft: #eef2ff;
+    --ok-bg:#ecfdf5; --ok-fg:#059669; --warn-bg:#fffbeb; --warn-fg:#d97706; --err-bg:#fef2f2; --err-fg:#e11d48;
+    --radius: 14px; background: var(--bg); color: var(--text-1);
+    font-size: 13px; line-height: 1.5; min-height: 100vh;
+  }
+  .theme-b .layout { display: flex; min-height: 100vh; }
+  .theme-b .side { width: 224px; background: var(--card); border-right: 1px solid var(--border); padding: 18px 14px; flex-shrink: 0; }
+  .theme-b .side .brand { font-size: 15px; font-weight: 800; padding: 4px 10px 18px; color: var(--primary); }
+  .theme-b .nav-group { font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--text-3); padding: 16px 10px 7px; }
+  .theme-b .nav-item { padding: 9px 12px; border-radius: 10px; color: var(--text-2); font-weight: 600; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .theme-b .nav-item:hover { background: var(--bg); }
+  .theme-b .nav-item.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(79,70,229,.28); }
+  .theme-b .nav-tag { font-size: 10px; font-weight: 600; color: var(--text-3); background: var(--bg); padding: 3px 8px; border-radius: 6px; }
+  .theme-b .nav-item.active .nav-tag { background: rgba(255,255,255,.2); color: #e0e7ff; }
+  .theme-b .main { flex: 1; padding: 32px 36px; max-width: 1100px; }
+  .theme-b .page-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 26px; }
+  .theme-b h2 { font-size: 20px; font-weight: 800; }
+  .theme-b .sub { font-size: 12px; color: var(--text-3); margin-top: 5px; }
+  .theme-b .btn { font-size: 12px; font-weight: 700; padding: 9px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text-2); cursor: pointer; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+  .theme-b .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .theme-b .btn-primary:hover { background: var(--primary-hover); box-shadow: 0 6px 16px rgba(79,70,229,.3); }
+  .theme-b .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 22px; }
+  .theme-b .stat { background: var(--card); padding: 18px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(16,24,40,.05); }
+  .theme-b .stat .k { font-size: 11px; color: var(--text-3); font-weight: 600; }
+  .theme-b .stat .v { font-size: 24px; font-weight: 800; margin-top: 7px; color: var(--text-1); font-variant-numeric: tabular-nums; }
+  .theme-b .stat .v small { font-size: 11px; font-weight: 600; color: var(--text-3); }
+  .theme-b .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 18px; box-shadow: 0 2px 8px rgba(16,24,40,.05); overflow: hidden; }
+  .theme-b .spu-head { padding: 20px 22px; display: flex; gap: 16px; align-items: center; }
+  .theme-b .spu-img { width: 60px; height: 60px; border-radius: 12px; border: 1px solid var(--border); object-fit: cover; }
+  .theme-b .spu-title { font-size: 15px; font-weight: 800; }
+  .theme-b .spu-code { font-size: 11px; color: var(--text-3); font-family: ui-monospace, monospace; margin-top: 3px; }
+  .theme-b .meta-row { display: flex; gap: 18px; margin-top: 7px; font-size: 11px; color: var(--text-2); }
+  .theme-b .spu-right { margin-left: auto; text-align: right; }
+  .theme-b .price { font-size: 17px; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+  .theme-b .stock-pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px; margin-top: 7px; }
+  .theme-b .stock-ok { background: var(--ok-bg); color: var(--ok-fg); }
+  .theme-b .stock-low { background: var(--warn-bg); color: var(--warn-fg); }
+  .theme-b .spu-body { border-top: 1px solid var(--border); padding: 20px 22px; background: #fcfcfe; }
+  .theme-b .sec-label { font-size: 12px; font-weight: 800; color: var(--text-1); margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
+  .theme-b .sec-label .count { color: var(--text-3); font-weight: 600; }
+  .theme-b .thumbs { display: flex; gap: 12px; margin-bottom: 22px; }
+  .theme-b .thumb { width: 68px; }
+  .theme-b .thumb img { width: 68px; height: 68px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); }
+  .theme-b .thumb span { display: block; font-size: 9px; color: var(--text-3); margin-top: 5px; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .theme-b table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .theme-b th { background: var(--card); font-size: 11px; font-weight: 700; color: var(--text-3); text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); }
+  .theme-b td { padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .theme-b tr:last-child td { border-bottom: none; }
+  .theme-b .row-head { font-weight: 700; background: #fcfcfe; }
+  .theme-b .cell { display: flex; gap: 11px; align-items: center; cursor: pointer; padding: 6px; border-radius: 10px; }
+  .theme-b .cell:hover { background: var(--primary-soft); }
+  .theme-b .cell img { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--border); object-fit: cover; }
+  .theme-b .cell .pcode { font-size: 10px; color: var(--text-3); font-family: ui-monospace, monospace; }
+  .theme-b .cell .pprice { font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+  .theme-b .cell .pstock { font-size: 11px; color: var(--text-2); }
+  .theme-b .cell .pstock.low { color: var(--warn-fg); font-weight: 700; }
+  .theme-b .cell-add { border: 1.5px dashed var(--border); border-radius: 10px; height: 60px; display: flex; align-items: center; justify-content: center; color: var(--text-3); cursor: pointer; }
+  .theme-b .cell-add:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+
+  /* ==================================================================
+     方案 C · 金融炭黑 Fintech Mono（Mercury / 现代 fintech 感）
+     规则：纯黑实心按钮 + 硬朗细线 + 深青单一强调 + 状态用圆点不用色块
+  ================================================================== */
+  .theme-c {
+    --bg: #fafaf9; --card: #ffffff; --border: #e7e5e4; --border-strong: #d6d3d1;
+    --text-1: #1c1917; --text-2: #57534e; --text-3: #a8a29e;
+    --ink: #1c1917; --teal: #0f766e; --teal-soft: #f0fdfa;
+    --ok:#059669; --warn:#b45309; --err:#dc2626;
+    --radius: 10px; background: var(--bg); color: var(--text-1);
+    font-size: 13px; line-height: 1.5; min-height: 100vh;
+  }
+  .theme-c .layout { display: flex; min-height: 100vh; }
+  .theme-c .side { width: 222px; background: #1c1917; padding: 20px 14px; flex-shrink: 0; color: #d6d3d1; }
+  .theme-c .side .brand { font-size: 14px; font-weight: 800; padding: 2px 10px 20px; color: #fff; letter-spacing: -.01em; }
+  .theme-c .nav-group { font-size: 10px; font-weight: 700; letter-spacing: .1em; color: #78716c; text-transform: uppercase; padding: 16px 10px 7px; }
+  .theme-c .nav-item { padding: 9px 11px; border-radius: 7px; color: #d6d3d1; font-weight: 500; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .theme-c .nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .theme-c .nav-item.active { background: #fff; color: #1c1917; font-weight: 700; }
+  .theme-c .nav-tag { font-size: 10px; font-weight: 600; color: #78716c; }
+  .theme-c .nav-item.active .nav-tag { color: #78716c; }
+  .theme-c .main { flex: 1; padding: 30px 34px; max-width: 1090px; }
+  .theme-c .page-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 26px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .theme-c h2 { font-size: 19px; font-weight: 800; letter-spacing: -.01em; }
+  .theme-c .sub { font-size: 12px; color: var(--text-3); margin-top: 5px; }
+  .theme-c .btn { font-size: 12px; font-weight: 600; padding: 9px 15px; border-radius: 7px; border: 1px solid var(--ink); background: var(--card); color: var(--ink); cursor: pointer; }
+  .theme-c .btn-primary { background: var(--ink); color: #fff; }
+  .theme-c .btn-primary:hover { background: #000; }
+  .theme-c .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 22px; background: var(--card); }
+  .theme-c .stat { padding: 18px; border-right: 1px solid var(--border); }
+  .theme-c .stat:last-child { border-right: none; }
+  .theme-c .stat .k { font-size: 11px; color: var(--text-3); font-weight: 500; }
+  .theme-c .stat .v { font-size: 23px; font-weight: 800; margin-top: 7px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .theme-c .stat .v small { font-size: 11px; font-weight: 500; color: var(--text-3); }
+  .theme-c .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 18px; }
+  .theme-c .spu-head { padding: 20px 22px; display: flex; gap: 16px; align-items: center; }
+  .theme-c .spu-img { width: 58px; height: 58px; border-radius: 8px; border: 1px solid var(--border); object-fit: cover; }
+  .theme-c .spu-title { font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
+  .theme-c .spu-code { font-size: 11px; color: var(--text-3); font-family: ui-monospace, monospace; margin-top: 3px; }
+  .theme-c .meta-row { display: flex; gap: 18px; margin-top: 7px; font-size: 11px; color: var(--text-2); }
+  .theme-c .spu-right { margin-left: auto; text-align: right; }
+  .theme-c .price { font-size: 17px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .theme-c .stock-dot { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; margin-top: 8px; color: var(--text-2); }
+  .theme-c .stock-dot i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  .theme-c .stock-dot.warn i { background: var(--warn); }
+  .theme-c .spu-body { border-top: 1px solid var(--border); padding: 20px 22px; background: #fdfdfc; }
+  .theme-c .sec-label { font-size: 11px; font-weight: 800; color: var(--text-1); margin-bottom: 12px; display: flex; align-items: center; gap: 7px; text-transform: uppercase; letter-spacing: .05em; }
+  .theme-c .sec-label .count { color: var(--text-3); font-weight: 500; text-transform: none; letter-spacing: 0; }
+  .theme-c .thumbs { display: flex; gap: 11px; margin-bottom: 22px; }
+  .theme-c .thumb { width: 66px; }
+  .theme-c .thumb img { width: 66px; height: 66px; object-fit: cover; border-radius: 7px; border: 1px solid var(--border); }
+  .theme-c .thumb span { display: block; font-size: 9px; color: var(--text-3); margin-top: 5px; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .theme-c table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .theme-c th { background: var(--card); font-size: 10px; font-weight: 800; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; text-align: left; padding: 10px 13px; border-bottom: 1px solid var(--border); }
+  .theme-c td { padding: 10px 13px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .theme-c tr:last-child td { border-bottom: none; }
+  .theme-c .row-head { font-weight: 700; background: #fdfdfc; }
+  .theme-c .cell { display: flex; gap: 11px; align-items: center; cursor: pointer; padding: 5px; border-radius: 7px; }
+  .theme-c .cell:hover { background: var(--teal-soft); }
+  .theme-c .cell img { width: 38px; height: 38px; border-radius: 6px; border: 1px solid var(--border); object-fit: cover; }
+  .theme-c .cell .pcode { font-size: 10px; color: var(--text-3); font-family: ui-monospace, monospace; }
+  .theme-c .cell .pprice { font-weight: 800; color: var(--teal); font-variant-numeric: tabular-nums; }
+  .theme-c .cell .pstock { font-size: 11px; color: var(--text-2); display: inline-flex; align-items: center; gap: 5px; }
+  .theme-c .cell .pstock.low { color: var(--warn); font-weight: 700; }
+  .theme-c .cell .pstock i { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+  .theme-c .cell .pstock.low i { background: var(--warn); }
+  .theme-c .cell-add { border: 1px dashed var(--border-strong); border-radius: 7px; height: 58px; display: flex; align-items: center; justify-content: center; color: var(--text-3); cursor: pointer; }
+  .theme-c .cell-add:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-soft); }
+
+  /* ==================================================================
+     方案 D · 粉白黑卡片 Bonita（Movae 视觉语言，自主实现）
+     规则：白画布 + 浅灰 24px 大圆角面板 + 黑色重点卡 + 玫红单一强调
+     胶囊按钮；状态用沉稳墨绿/赭石/暗红；大留白、弱边框
+  ================================================================== */
+  .theme-d {
+    --canvas: #ffffff; --muted: #f5f5f7; --border: #e5e5e8;
+    --text-1: #1d1d1f; --text-2: #6e6e73;
+    --pink: #c51c60; --pink-hover: #a71550; --pink-soft: #ffe0ec; --pink-bg: #fff5f9;
+    --ink: #0d0d0f; --ink-text: #f5f5f7; --ink-sub: #a2a2aa; --ink-pink: #ff79a8;
+    --ok: #247454; --ok-soft: #e9f6ef; --warn: #8f5809; --warn-soft: #fff3da; --err: #b42332; --err-soft: #fff0f2;
+    background: var(--canvas); color: var(--text-1);
+    font-size: 13px; line-height: 1.5; min-height: 100vh;
+  }
+  .theme-d .layout { display: flex; min-height: 100vh; }
+  .theme-d .side { width: 232px; background: var(--canvas); border-right: 1px solid var(--border); padding: 24px 16px; flex-shrink: 0; }
+  .theme-d .side .brand { font-size: 16px; font-weight: 700; padding: 2px 12px 22px; color: var(--text-1); letter-spacing: -.01em; }
+  .theme-d .nav-group { font-size: 11px; font-weight: 600; color: var(--text-2); padding: 18px 12px 8px; }
+  .theme-d .nav-item { padding: 10px 12px; border-radius: 8px; color: var(--text-1); font-weight: 500; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .theme-d .nav-item:hover { background: var(--pink-bg); }
+  .theme-d .nav-item.active { background: var(--pink-soft); color: var(--pink); font-weight: 600; }
+  .theme-d .nav-tag { font-size: 10px; font-weight: 500; color: var(--text-2); background: var(--muted); padding: 3px 8px; border-radius: 6px; }
+  .theme-d .nav-item.active .nav-tag { background: rgba(197,28,96,.12); color: var(--pink); }
+  .theme-d .main { flex: 1; padding: 36px 40px 48px; max-width: 1120px; }
+  .theme-d .page-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+  .theme-d h2 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+  .theme-d .sub { font-size: 13px; color: var(--text-2); margin-top: 6px; }
+  .theme-d .btn { font-size: 13px; font-weight: 500; padding: 10px 20px; border-radius: 20px; border: 1px solid var(--border); background: var(--canvas); color: var(--text-1); cursor: pointer; }
+  .theme-d .btn:hover { background: var(--muted); }
+  .theme-d .btn-primary { background: var(--pink); color: #fff; border-color: var(--pink); }
+  .theme-d .btn-primary:hover { background: var(--pink-hover); }
+
+  /* 黑色重点统计卡 */
+  .theme-d .stats { background: var(--ink); border-radius: 24px; padding: 28px; display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; margin-bottom: 24px; }
+  .theme-d .stat { border-right: 1px solid rgba(255,255,255,.08); padding-right: 20px; }
+  .theme-d .stat:last-child { border-right: none; padding-right: 0; }
+  .theme-d .stat .k { font-size: 12px; color: var(--ink-sub); font-weight: 500; }
+  .theme-d .stat .v { font-size: 30px; font-weight: 700; margin-top: 8px; color: var(--ink-text); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .theme-d .stat .v small { font-size: 12px; font-weight: 400; color: var(--ink-sub); margin-left: 4px; }
+  .theme-d .stat.featured .v { color: var(--ink-pink); }
+
+  /* 浅灰大圆角面板 */
+  .theme-d .card { background: var(--muted); border-radius: 24px; padding: 28px; margin-bottom: 20px; }
+  .theme-d .spu-head { display: flex; gap: 18px; align-items: center; }
+  .theme-d .spu-img { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; background: #fff; }
+  .theme-d .spu-title { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+  .theme-d .spu-code { font-size: 12px; color: var(--text-2); font-family: ui-monospace, monospace; margin-top: 3px; }
+  .theme-d .meta-row { display: flex; gap: 18px; margin-top: 8px; font-size: 12px; color: var(--text-2); }
+  .theme-d .spu-right { margin-left: auto; text-align: right; }
+  .theme-d .price { font-size: 20px; font-weight: 700; color: var(--pink); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .theme-d .stock-pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 20px; margin-top: 8px; }
+  .theme-d .stock-ok { background: var(--ok-soft); color: var(--ok); }
+  .theme-d .stock-low { background: var(--warn-soft); color: var(--warn); }
+  .theme-d .divider { height: 1px; background: var(--border); margin: 24px 0; }
+  .theme-d .sec-label { font-size: 14px; font-weight: 700; color: var(--text-1); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .theme-d .sec-label .count { font-size: 12px; color: var(--text-2); font-weight: 400; }
+  .theme-d .thumbs { display: flex; gap: 14px; margin-bottom: 26px; }
+  .theme-d .thumb { width: 72px; }
+  .theme-d .thumb img { width: 72px; height: 72px; object-fit: cover; border-radius: 12px; background: #fff; }
+  .theme-d .thumb span { display: block; font-size: 10px; color: var(--text-2); margin-top: 6px; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* 矩阵：白底子卡片，无边框线 */
+  .theme-d .matrix { display: grid; grid-template-columns: 72px repeat(4, 1fr); gap: 10px; }
+  .theme-d .m-head { font-size: 12px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; justify-content: center; padding: 6px 0; }
+  .theme-d .m-rowhead { font-size: 13px; font-weight: 700; display: flex; align-items: center; padding-left: 4px; }
+  .theme-d .m-cell { background: #fff; border-radius: 12px; padding: 10px; display: flex; gap: 10px; align-items: center; cursor: pointer; }
+  .theme-d .m-cell:hover { box-shadow: 0 0 0 2px var(--pink-soft); }
+  .theme-d .m-cell img { width: 42px; height: 42px; border-radius: 8px; object-fit: cover; }
+  .theme-d .m-cell .pcode { font-size: 10px; color: var(--text-2); font-family: ui-monospace, monospace; }
+  .theme-d .m-cell .pprice { font-weight: 700; color: var(--pink); font-size: 13px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .theme-d .m-cell .pstock { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+  .theme-d .m-cell .pstock.low { color: var(--warn); font-weight: 600; }
+  .theme-d .m-add { border: 1.5px dashed var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 18px; cursor: pointer; background: transparent; min-height: 62px; }
+  .theme-d .m-add:hover { border-color: var(--pink); color: var(--pink); background: var(--pink-bg); }
+</style>
+</head>
+<body>
+
+<div class="switcher">
+  <h1>ShopDesk 视觉方案</h1>
+  <button class="tab active" data-theme="a">A · 冷灰专业</button>
+  <button class="tab" data-theme="b">B · 明亮靛蓝</button>
+  <button class="tab" data-theme="c">C · 金融炭黑</button>
+  <button class="tab" data-theme="d">D · 粉白黑卡片</button>
+  <span class="desc" id="themeDesc">深色实心按钮 · 极轻边框无阴影 · 灰阶层级 · 类似 Linear/Vercel</span>
+</div>
+
+<!-- 统一打样内容：侧边栏 + 统计 + 芒果胸贴 SPU 卡片（2色×4码矩阵 + 素材条） -->
+
+<!-- ============ 方案 A ============ -->
+<div class="theme theme-a show" id="theme-a">
+<div class="layout">
+  <aside class="side">
+    <div class="brand">ShopDesk</div>
+    <div class="nav-group">开店与供给</div>
+    <div class="nav-item">工作台首页</div>
+    <div class="nav-item">市场与店铺管理 <span class="nav-tag">选国绑店</span></div>
+    <div class="nav-item active">货源商品库 <span class="nav-tag">SPU/SKU</span></div>
+    <div class="nav-item">定价计算器</div>
+    <div class="nav-item">店铺资料库</div>
+    <div class="nav-group">日常运营</div>
+    <div class="nav-item">TikTok 店铺商品</div>
+    <div class="nav-item">订单推仓履约</div>
+  </aside>
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h2>货源商品库</h2>
+        <div class="sub">按 SPU 款族管理供应商货源，颜色×尺码矩阵维护 SKU 一口价、库存与素材</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn">供货商管理</button>
+        <button class="btn btn-primary">+ 新增货源 SPU</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">在库 SPU</div><div class="v">2 <small>个款族</small></div></div>
+      <div class="stat"><div class="k">SKU 变体</div><div class="v">43 <small>个</small></div></div>
+      <div class="stat"><div class="k">素材图片</div><div class="v">43 <small>张</small></div></div>
+      <div class="stat"><div class="k">聚合库存</div><div class="v">83,496 <small>件</small></div></div>
+    </div>
+
+    <div class="card">
+      <div class="spu-head">
+        <img class="spu-img" src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg" alt="">
+        <div>
+          <div class="spu-title">芒果胸贴</div>
+          <div class="spu-code">mangguoxiongtie · 深圳源创 · SLA 24h</div>
+          <div class="meta-row"><span>2 颜色 × 4 尺码 = 8 变体</span><span>实重 20g/件</span><span>体积重 150g</span></div>
+        </div>
+        <div class="spu-right">
+          <div class="price">$20.00 MXN 一口价</div>
+          <span class="stock-pill stock-ok">库存 79,996 件</span>
+        </div>
+      </div>
+      <div class="spu-body">
+        <div class="sec-label">素材库 <span class="count">（8 张，供应商 CDN 原图）</span></div>
+        <div class="thumbs">
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg"><span>hei-D</span></div>
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><span>hei-C</span></div>
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><span>hei-B</span></div>
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><span>hei-A</span></div>
+        </div>
+        <div class="sec-label">SKU 矩阵 <span class="count">（点击单元格编辑价/库存/素材）</span></div>
+        <table>
+          <thead><tr><th>颜色 ＼ 尺码</th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="row-head">肤</td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><div><div class="pcode">P5L00012</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><div><div class="pcode">P5L00013</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><div><div class="pcode">P5L00014</div><div class="pprice">$20 MXN</div><div class="pstock low">库存 80</div></div></div></td>
+              <td><div class="cell-add">+</div></td>
+            </tr>
+            <tr>
+              <td class="row-head">黑</td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><div><div class="pcode">P5L00016</div><div class="pprice">$20 MXN</div><div class="pstock">库存 9,999</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><div><div class="pcode">P5L00017</div><div class="pprice">$20 MXN</div><div class="pstock">库存 9,999</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><div><div class="pcode">P5L00018</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg"><div><div class="pcode">P5L00019</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<!-- ============ 方案 B（结构与 A 完全一致，换皮） ============ -->
+<div class="theme theme-b" id="theme-b">
+<div class="layout">
+  <aside class="side">
+    <div class="brand">ShopDesk</div>
+    <div class="nav-group">开店与供给</div>
+    <div class="nav-item">工作台首页</div>
+    <div class="nav-item">市场与店铺管理 <span class="nav-tag">选国绑店</span></div>
+    <div class="nav-item active">货源商品库 <span class="nav-tag">SPU/SKU</span></div>
+    <div class="nav-item">定价计算器</div>
+    <div class="nav-item">店铺资料库</div>
+    <div class="nav-group">日常运营</div>
+    <div class="nav-item">TikTok 店铺商品</div>
+    <div class="nav-item">订单推仓履约</div>
+  </aside>
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h2>货源商品库</h2>
+        <div class="sub">按 SPU 款族管理供应商货源，颜色×尺码矩阵维护 SKU 一口价、库存与素材</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn">供货商管理</button>
+        <button class="btn btn-primary">+ 新增货源 SPU</button>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">在库 SPU</div><div class="v">2 <small>个款族</small></div></div>
+      <div class="stat"><div class="k">SKU 变体</div><div class="v">43 <small>个</small></div></div>
+      <div class="stat"><div class="k">素材图片</div><div class="v">43 <small>张</small></div></div>
+      <div class="stat"><div class="k">聚合库存</div><div class="v">83,496 <small>件</small></div></div>
+    </div>
+    <div class="card">
+      <div class="spu-head">
+        <img class="spu-img" src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg" alt="">
+        <div>
+          <div class="spu-title">芒果胸贴</div>
+          <div class="spu-code">mangguoxiongtie · 深圳源创 · SLA 24h</div>
+          <div class="meta-row"><span>2 颜色 × 4 尺码 = 8 变体</span><span>实重 20g/件</span><span>体积重 150g</span></div>
+        </div>
+        <div class="spu-right">
+          <div class="price">$20.00 MXN 一口价</div>
+          <span class="stock-pill stock-ok">库存 79,996 件</span>
+        </div>
+      </div>
+      <div class="spu-body">
+        <div class="sec-label">素材库 <span class="count">（8 张，供应商 CDN 原图）</span></div>
+        <div class="thumbs">
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg"><span>hei-D</span></div>
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><span>hei-C</span></div>
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><span>hei-B</span></div>
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><span>hei-A</span></div>
+        </div>
+        <div class="sec-label">SKU 矩阵 <span class="count">（点击单元格编辑价/库存/素材）</span></div>
+        <table>
+          <thead><tr><th>颜色 ＼ 尺码</th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="row-head">肤</td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><div><div class="pcode">P5L00012</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><div><div class="pcode">P5L00013</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><div><div class="pcode">P5L00014</div><div class="pprice">$20 MXN</div><div class="pstock low">库存 80</div></div></div></td>
+              <td><div class="cell-add">+</div></td>
+            </tr>
+            <tr>
+              <td class="row-head">黑</td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><div><div class="pcode">P5L00016</div><div class="pprice">$20 MXN</div><div class="pstock">库存 9,999</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><div><div class="pcode">P5L00017</div><div class="pprice">$20 MXN</div><div class="pstock">库存 9,999</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><div><div class="pcode">P5L00018</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg"><div><div class="pcode">P5L00019</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<!-- ============ 方案 C ============ -->
+<div class="theme theme-c" id="theme-c">
+<div class="layout">
+  <aside class="side">
+    <div class="brand">ShopDesk</div>
+    <div class="nav-group">开店与供给</div>
+    <div class="nav-item">工作台首页</div>
+    <div class="nav-item">市场与店铺管理 <span class="nav-tag">选国绑店</span></div>
+    <div class="nav-item active">货源商品库 <span class="nav-tag">SPU/SKU</span></div>
+    <div class="nav-item">定价计算器</div>
+    <div class="nav-item">店铺资料库</div>
+    <div class="nav-group">日常运营</div>
+    <div class="nav-item">TikTok 店铺商品</div>
+    <div class="nav-item">订单推仓履约</div>
+  </aside>
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h2>货源商品库</h2>
+        <div class="sub">按 SPU 款族管理供应商货源，颜色×尺码矩阵维护 SKU 一口价、库存与素材</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn">供货商管理</button>
+        <button class="btn btn-primary">+ 新增货源 SPU</button>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">在库 SPU</div><div class="v">2 <small>个款族</small></div></div>
+      <div class="stat"><div class="k">SKU 变体</div><div class="v">43 <small>个</small></div></div>
+      <div class="stat"><div class="k">素材图片</div><div class="v">43 <small>张</small></div></div>
+      <div class="stat"><div class="k">聚合库存</div><div class="v">83,496 <small>件</small></div></div>
+    </div>
+    <div class="card">
+      <div class="spu-head">
+        <img class="spu-img" src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg" alt="">
+        <div>
+          <div class="spu-title">芒果胸贴</div>
+          <div class="spu-code">mangguoxiongtie · 深圳源创 · SLA 24h</div>
+          <div class="meta-row"><span>2 颜色 × 4 尺码 = 8 变体</span><span>实重 20g/件</span><span>体积重 150g</span></div>
+        </div>
+        <div class="spu-right">
+          <div class="price">$20.00 MXN 一口价</div>
+          <span class="stock-dot"><i></i>库存 79,996 件 · 充足</span>
+        </div>
+      </div>
+      <div class="spu-body">
+        <div class="sec-label">素材库 <span class="count">（8 张，供应商 CDN 原图）</span></div>
+        <div class="thumbs">
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg"><span>hei-D</span></div>
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><span>hei-C</span></div>
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><span>hei-B</span></div>
+          <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><span>hei-A</span></div>
+        </div>
+        <div class="sec-label">SKU 矩阵 <span class="count">（点击单元格编辑价/库存/素材）</span></div>
+        <table>
+          <thead><tr><th>颜色 ＼ 尺码</th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="row-head">肤</td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><div><div class="pcode">P5L00012</div><div class="pprice">$20 MXN</div><div class="pstock"><i></i>10,000</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><div><div class="pcode">P5L00013</div><div class="pprice">$20 MXN</div><div class="pstock"><i></i>10,000</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><div><div class="pcode">P5L00014</div><div class="pprice">$20 MXN</div><div class="pstock low"><i></i>80 · 偏低</div></div></div></td>
+              <td><div class="cell-add">+</div></td>
+            </tr>
+            <tr>
+              <td class="row-head">黑</td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><div><div class="pcode">P5L00016</div><div class="pprice">$20 MXN</div><div class="pstock"><i></i>9,999</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><div><div class="pcode">P5L00017</div><div class="pprice">$20 MXN</div><div class="pstock"><i></i>9,999</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><div><div class="pcode">P5L00018</div><div class="pprice">$20 MXN</div><div class="pstock"><i></i>10,000</div></div></div></td>
+              <td><div class="cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg"><div><div class="pcode">P5L00019</div><div class="pprice">$20 MXN</div><div class="pstock"><i></i>10,000</div></div></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<!-- ============ 方案 D · 粉白黑卡片 ============ -->
+<div class="theme theme-d" id="theme-d">
+<div class="layout">
+  <aside class="side">
+    <div class="brand">ShopDesk</div>
+    <div class="nav-group">开店与供给</div>
+    <div class="nav-item">工作台首页</div>
+    <div class="nav-item">市场与店铺管理 <span class="nav-tag">选国绑店</span></div>
+    <div class="nav-item active">货源商品库 <span class="nav-tag">SPU/SKU</span></div>
+    <div class="nav-item">定价计算器</div>
+    <div class="nav-item">店铺资料库</div>
+    <div class="nav-group">日常运营</div>
+    <div class="nav-item">TikTok 店铺商品</div>
+    <div class="nav-item">订单推仓履约</div>
+  </aside>
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h2>货源商品库</h2>
+        <div class="sub">按 SPU 款族管理供应商货源，颜色×尺码矩阵维护 SKU 一口价、库存与素材</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn">供货商管理</button>
+        <button class="btn btn-primary">+ 新增货源 SPU</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">在库 SPU</div><div class="v">2<small>个款族</small></div></div>
+      <div class="stat"><div class="k">SKU 变体</div><div class="v">43<small>个</small></div></div>
+      <div class="stat"><div class="k">素材图片</div><div class="v">43<small>张</small></div></div>
+      <div class="stat featured"><div class="k">聚合库存</div><div class="v">83,496<small>件</small></div></div>
+    </div>
+
+    <div class="card">
+      <div class="spu-head">
+        <img class="spu-img" src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg" alt="">
+        <div>
+          <div class="spu-title">芒果胸贴</div>
+          <div class="spu-code">mangguoxiongtie · 深圳源创 · SLA 24h</div>
+          <div class="meta-row"><span>2 颜色 × 4 尺码 = 8 变体</span><span>实重 20g/件</span><span>体积重 150g</span></div>
+        </div>
+        <div class="spu-right">
+          <div class="price">$20.00 MXN 一口价</div>
+          <span class="stock-pill stock-ok">库存 79,996 件 · 充足</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sec-label">素材库 <span class="count">（8 张，供应商 CDN 原图）</span></div>
+      <div class="thumbs">
+        <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg"><span>hei-D</span></div>
+        <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><span>hei-C</span></div>
+        <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><span>hei-B</span></div>
+        <div class="thumb"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><span>hei-A</span></div>
+      </div>
+
+      <div class="sec-label" style="margin-top:28px">SKU 矩阵 <span class="count">（点击单元格编辑价/库存/素材）</span></div>
+      <div class="matrix">
+        <div></div>
+        <div class="m-head">A</div><div class="m-head">B</div><div class="m-head">C</div><div class="m-head">D</div>
+
+        <div class="m-rowhead">肤</div>
+        <div class="m-cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><div><div class="pcode">P5L00012</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div>
+        <div class="m-cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><div><div class="pcode">P5L00013</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div>
+        <div class="m-cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><div><div class="pcode">P5L00014</div><div class="pprice">$20 MXN</div><div class="pstock low">库存 80 · 偏低</div></div></div>
+        <div class="m-add">+</div>
+
+        <div class="m-rowhead">黑</div>
+        <div class="m-cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051558_d14db94266cd44279b5799b9eae1efac.jpg"><div><div class="pcode">P5L00016</div><div class="pprice">$20 MXN</div><div class="pstock">库存 9,999</div></div></div>
+        <div class="m-cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026051751_3cd08ee35cf84a9883045414c367815b.jpg"><div><div class="pcode">P5L00017</div><div class="pprice">$20 MXN</div><div class="pstock">库存 9,999</div></div></div>
+        <div class="m-cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052031_a3449c8ea0894eb2b3fdc3deabd300eb.jpg"><div><div class="pcode">P5L00018</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div>
+        <div class="m-cell"><img src="https://download.jfwms.com/save/product/system/img/23732/20261026052156_bdb1e329971c47cfabb56d95dd0478d7.jpg"><div><div class="pcode">P5L00019</div><div class="pprice">$20 MXN</div><div class="pstock">库存 10,000</div></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<script>
+  const descs = {
+    a: '深色实心按钮 · 极轻边框无阴影 · 灰阶层级 · 类似 Linear/Vercel',
+    b: 'indigo 主色柔和阴影 · 大圆角大留白 · 浅底状态色 · 类似 Stripe',
+    c: '深色侧边栏纯黑按钮 · 硬朗细线 · 深青强调 · 状态用圆点 · 类似 Mercury 金融风',
+    d: 'Movae 同源视觉：浅灰 24px 大圆角面板 + 黑色重点卡 + 玫红单一强调 · 胶囊按钮 · 沉稳状态色'
+  };
+  const tabs = document.querySelectorAll('.switcher .tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.theme').forEach(th => th.classList.remove('show'));
+      document.getElementById('theme-' + tab.dataset.theme).classList.add('show');
+      document.getElementById('themeDesc').textContent = descs[tab.dataset.theme];
+    });
+  });
+</script>
+</body>
+</html>

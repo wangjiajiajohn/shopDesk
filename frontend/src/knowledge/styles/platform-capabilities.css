@@ -1,0 +1,35 @@
+/* Platform evidence collection: summary first, comparable tables, detailed provenance. */
+.capability-page { line-height: 1.8; }
+.capability-intro { margin-top: var(--space-4); text-align: center; color: var(--color-secondary); }
+.capability-method { display: flex; align-items: center; justify-content: center; gap: var(--space-4); margin: var(--space-8) 0; flex-wrap: wrap; }
+.capability-method span { display: flex; align-items: center; gap: var(--space-2); }
+.capability-method span svg { color: var(--color-primary); }
+.capability-progress { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); padding: var(--space-6); margin: 0; background: var(--color-surface-muted); border-radius: var(--radius-panel); }
+.capability-progress button, .capability-progress > div { text-align: left; padding: var(--space-3); border-radius: var(--radius-control); }
+.capability-progress button { border: 0; background: transparent; color: var(--color-text); font: inherit; cursor: pointer; }
+.capability-progress button:hover { background: var(--color-hover); }
+.capability-progress button[aria-pressed="true"] { background: var(--color-primary-soft); color: var(--color-primary); }
+.capability-progress button[aria-pressed="true"] strong { text-decoration: underline; text-underline-offset: var(--space-1); }
+.capability-progress span { display: block; margin-top: var(--space-1); }
+.capability-progress > div span, .capability-progress button[aria-pressed="false"] span { color: var(--color-secondary); }
+.capability-header { margin: var(--space-12) 0 var(--space-6); }
+.capability-header h2 { font-size: var(--font-title); font-weight: 600; }
+.capability-header p { margin-top: var(--space-2); color: var(--color-secondary); }
+.capability-conclusion { padding: var(--space-6); background: var(--color-surface-muted); border-radius: var(--radius-panel); }
+.capability-conclusion strong { font-size: var(--font-section); }
+.capability-conclusion p { margin-top: var(--space-3); max-width: 75ch; }
+.capability-section { margin-top: var(--space-8); border-top: 1px solid var(--color-border); }
+.capability-section > summary { padding: var(--space-4) 0; cursor: pointer; font-size: var(--font-section); font-weight: 600; }
+.capability-table-scroll { overflow-x: auto; border-radius: var(--radius-control); }
+.capability-page table { width: 100%; border-collapse: collapse; text-align: left; font-size: var(--font-body); }
+.capability-page th, .capability-page td { vertical-align: top; padding: var(--space-4); border-bottom: 1px solid var(--color-border); overflow-wrap: anywhere; }
+.capability-page thead { background: var(--color-surface-muted); }
+.capability-page tbody th { width: 16%; font-weight: 600; }
+.capability-notes { max-width: 75ch; }
+.capability-notes p { margin-top: var(--space-4); }
+.capability-sources { padding-left: var(--space-6); margin-top: var(--space-4); }
+.capability-sources a { color: var(--color-primary); text-underline-offset: var(--space-1); }
+@media (max-width: 720px) {
+  .capability-progress { grid-template-columns: 1fr; gap: var(--space-4); }
+  .capability-page table { min-width: 600px; }
+}

@@ -1,0 +1,138 @@
+/* Bonita a Diario design tokens. Keep DESIGN.md in sync when changing these values. */
+:root {
+  --color-calculator-mobile-canvas: #0c0c0e;
+  --color-inverse-inset: #222224;
+  --color-inverse-success: #73deb0;
+  --color-inverse-warning: #ffd27d;
+  --color-inverse-error: #ff6b6b;
+
+  --color-calculator-hero-text: #5E3346;
+  --color-canvas: #ffffff;
+  --color-surface: #ffffff;
+  --color-sidebar: #ffffff;
+  --color-surface-muted: #f5f5f7;
+  --color-text: #1d1d1f;
+  --color-secondary: #6e6e73;
+  --color-border: #e5e5e8;
+  --color-inverse: #0d0d0f;
+  --color-on-inverse: #f5f5f7;
+  --color-inverse-secondary: #a2a2aa;
+  --color-inverse-accent: #ff79a8;
+  --color-climate-cool: #8dc0ff;
+  --color-climate-mild: #9ed9cf;
+  --color-climate-warm: #ffcf8c;
+  --color-climate-hot: #ff8eb6;
+  --color-climate-wet: #6ca6f9;
+  --color-climate-missing: #6e6e73;
+  --color-hover: #fff5f9;
+  --color-primary: #c51c60;
+  --color-primary-hover: #a71550;
+  --color-primary-soft: #ffe0ec;
+  --color-accent: #ff4282;
+  --color-brand-orange: #e4774a;
+  --color-culture: #9b451f;
+  --color-culture-soft: #fff0e5;
+  --color-success: #247454;
+  --color-success-soft: #e9f6ef;
+  --color-warning: #8f5809;
+  --color-warning-soft: #fff3da;
+  --color-error: #b42332;
+  --color-error-soft: #fff0f2;
+  --color-info: #276d9b;
+  --color-info-soft: #eaf4fc;
+  --color-scrollbar: #c7c7cd;
+  --font-interface: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-caption: 12px;
+  --font-body: 14px;
+  --font-section: 18px;
+  --font-title: 28px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-label: 6px;
+  --radius-control: 8px;
+  --radius-panel: 24px;
+  --loading-spin-duration: 900ms;
+  --login-rise-duration: 750ms;
+  --login-brand-size: clamp(var(--font-title), 4.8vw, calc(var(--space-12) * 1.5));
+  --login-letter-stagger: 50ms;
+  --login-fade-duration: 1000ms;
+  --login-hold-duration: 1000ms;
+  --sidebar-enter-duration: 220ms;
+  --sidebar-exit-duration: 160ms;
+  --sidebar-width: 360px;
+  --holiday-drawer-width: 480px;
+  --holiday-close-size: 40px;
+  --climate-map-height: 360px;
+  --website-card-height: 120px;
+  --color-scrim: rgb(0 0 0 / 25%);
+  --page-gutter: 32px;
+  --content-width: 1040px;
+  --header-height: 56px;
+  --focus-ring: 0 0 0 3px rgb(197 28 96 / 20%);
+}
+
+/* Calculator-only visual theme, from the user's pricing-profit.html reference.
+   The workspace palette and other surfaces remain unchanged. */
+.calculator-page {
+  --color-primary: #b2305e;
+  --color-primary-hover: #b2305e;
+  --color-primary-soft: #fce4ee;
+  --color-hover: #fce4ee;
+  --color-inverse: #0e0e10;
+  --color-on-inverse: #ffffff;
+  --color-inverse-secondary: #a1a1a6;
+  --color-inverse-accent: #ff8db5;
+  --color-border: #e5e5ea;
+  --color-calculator-auxiliary: #8e8e93;
+  --radius-panel: 28px;
+  --radius-control: 14px;
+  --radius-calculator-pill: 99px;
+  --font-calculator-input: 16px;
+  --calculator-cost-sidebar-width: 75vw;
+  --calculator-drawer-exit-duration: 240ms;
+  --color-calculator-entry: #222222;
+  --color-calculator-drawer: #161618;
+  --color-calculator-input: #2c2c2f;
+  --color-calculator-drawer-border: #3a3a3e;
+  --color-calculator-formula: #9a9aa0;
+  --color-calculator-action-text: #e8e8ec;
+  --color-calculator-field-focus: #b02a5b;
+  --color-calculator-cta: #b02a5b;
+  --color-calculator-tab-selected: #2e2e33;
+  --color-calculator-menu-surface: #2c2c30;
+  --color-calculator-menu-selected: rgb(176 42 91 / 18%);
+  --color-calculator-menu-check: #ff8fb5;
+  --calculator-menu-row-height: 56px;
+  --shadow-calculator-drawer-menu: 0 12px 32px rgb(0 0 0 / 50%);
+  --color-calculator-backdrop: rgb(0 0 0 / 55%);
+  --calculator-backdrop-blur: 6px;
+  --color-calculator-close: #ececf0;
+  --calculator-close-size: 36px;
+  --calculator-touch-size: 44px;
+  --calculator-currency-menu-width: 320px;
+  --calculator-currency-menu-layer: 1000;
+  --radius-calculator-menu: 24px;
+  --shadow-calculator-menu: 0 12px 32px rgb(0 0 0 / 14%);
+}
+
+/* Dark cost drawer; include portalled calculator menus in the same theme. */
+.calculator-cost-sidebar,
+.calculator-cost-sidebar .calculator-currency-menu,
+.calculator-promotion-stage,
+.calculator-promotion-stage .calculator-currency-menu {
+  --color-canvas: var(--color-calculator-drawer);
+  --color-surface-muted: var(--color-calculator-entry);
+  --color-text: var(--color-on-inverse);
+  --color-secondary: var(--color-inverse-secondary);
+  --color-border: var(--color-calculator-drawer-border);
+  --color-primary-soft: var(--color-calculator-input);
+  --color-hover: var(--color-calculator-input);
+  --color-calculator-auxiliary: var(--color-inverse-secondary);
+  --color-calculator-close: var(--color-calculator-input);
+  --color-error: var(--color-inverse-error);
+}

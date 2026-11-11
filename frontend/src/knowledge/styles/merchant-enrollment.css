@@ -1,0 +1,24 @@
+/* Imported merchant guide: preserve the established knowledge document layout. */
+.merchant-enrollment-source { margin-top: var(--space-8); }
+.merchant-enrollment-source a { display: inline-flex; align-items: center; gap: var(--space-1); }
+.merchant-enrollment-article > h2:first-child { margin-top: 0; }
+.merchant-enrollment-article h2 { margin: var(--space-12) 0 var(--space-4); font-size: var(--font-title); font-weight: 600; }
+.merchant-enrollment-article h3 { margin: var(--space-8) 0 var(--space-3); }
+.merchant-enrollment-article h4,
+.merchant-enrollment-article h5,
+.merchant-enrollment-article h6 { margin: var(--space-6) 0 var(--space-3); font-size: var(--font-body); font-weight: 600; }
+.merchant-enrollment-article > p,
+.merchant-enrollment-article > ul,
+.merchant-enrollment-article > ol { margin: var(--space-4) 0; }
+.merchant-enrollment-article ol { padding-left: var(--space-6); }
+.merchant-enrollment-article li > p { margin: var(--space-2) 0; }
+.merchant-enrollment-article img { display: block; max-width: 100%; height: auto; margin: var(--space-6) auto; border-radius: var(--radius-control); }
+.merchant-enrollment-article [id] { scroll-margin-top: calc(var(--header-height) + var(--space-6)); }
+.merchant-enrollment-article [id]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: var(--space-1); }
+.merchant-table-scroll { max-width: 100%; overflow-x: auto; margin: var(--space-6) 0; border: 1px solid var(--color-border); border-radius: var(--radius-control); }
+.merchant-table-scroll table { width: 100%; border-collapse: collapse; font-size: var(--font-body); }
+.merchant-table-scroll th,
+.merchant-table-scroll td { min-width: calc(var(--space-12) * 3); padding: var(--space-3); vertical-align: top; text-align: left; border-bottom: 1px solid var(--color-border); }
+.merchant-table-scroll th { background: var(--color-surface-muted); font-weight: 600; }
+.merchant-table-scroll tr:last-child td { border-bottom: 0; }
+.merchant-table-scroll p { margin: 0; }
