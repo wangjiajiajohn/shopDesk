@@ -1,0 +1,27 @@
+.fx-widget { position:relative; flex-shrink:0; margin:0; color:var(--hd-text); font-size:11px; z-index:45; }
+.fx-widget summary { display:flex; align-items:center; gap:10px; min-height:36px; padding:3px 8px; border-radius:var(--hd-radius); cursor:pointer; list-style:none; }
+.fx-widget summary::-webkit-details-marker { display:none; }
+.fx-widget summary:hover,.fx-widget[open] summary { background:var(--hd-primary-soft); }
+.fx-widget summary:focus-visible,.fx-widget :is(a,button):focus-visible { outline:2px solid var(--hd-primary); outline-offset:3px; }
+.fx-mini-wrap { position:relative; display:inline-flex; align-items:center; }
+.fx-mini-tooltip { position:absolute; top:calc(100% + 10px); right:0; z-index:2; display:flex; flex-direction:column; gap:3px; padding:8px 10px; border-radius:6px; color:var(--hd-surface); background:var(--hd-text); white-space:nowrap; pointer-events:none; font-size:11px; }
+.fx-value { white-space:nowrap; font-variant-numeric:tabular-nums; }
+.fx-line { fill:none; stroke:var(--hd-primary); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.fx-dot { fill:var(--hd-primary); }
+.fx-popover { position:absolute; top:calc(100% + 10px); left:0; width:340px; max-width:calc(100vw - 32px); padding:16px; border:1px solid var(--hd-line); border-radius:var(--hd-radius); background:var(--hd-surface); font-size:12px; }
+.fx-heading,.fx-date-range { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.fx-heading span,.fx-date-range,.fx-caption,.fx-source { color:var(--hd-muted); }
+.fx-latest { margin:12px 0 4px; font-size:16px; font-weight:650; font-variant-numeric:tabular-nums; }
+.fx-caption { margin:0 0 12px; }
+.fx-chart-wrap { position:relative; padding-top:45px; }
+.fx-tooltip { position:absolute; top:0; display:flex; flex-direction:column; gap:2px; padding:6px 9px; border-radius:6px; background:var(--hd-text); color:var(--hd-surface); pointer-events:none; white-space:nowrap; font-size:11px; }
+.fx-crosshair { pointer-events:none; }
+.fx-crosshair line { stroke:var(--hd-muted); stroke-width:1; stroke-dasharray:3 3; }
+.fx-crosshair circle { fill:var(--hd-primary); stroke:var(--hd-surface); stroke-width:2; }
+.fx-chart:focus-visible { outline:2px solid var(--hd-primary); outline-offset:4px; }
+.fx-chart { display:block; width:100%; margin-top:12px; overflow:visible; }
+.fx-source { font-size:11px; margin-top:14px; line-height:1.6; }
+.fx-source a,.fx-error button { color:var(--hd-primary); text-decoration:underline; text-underline-offset:3px; }
+.fx-error { color:var(--hd-danger-text); margin-top:10px; }.fx-error button { margin-left:8px; background:none; border:0; cursor:pointer; }
+.fx-same { font-size:11px; color:#626b80; }
+@media(max-width:1100px) { .fx-widget summary svg { width:70px; } .fx-popover { left:auto; right:0; } }

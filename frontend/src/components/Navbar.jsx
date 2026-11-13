@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ExchangeRate from './exchange-rate/ExchangeRate';
 import { Store, Globe, Plus, Bell, CheckCircle2, LogOut, User } from 'lucide-react';
 
 export default function Navbar({
@@ -12,12 +13,15 @@ export default function Navbar({
   onLogout
 }) {
   const currentShop = shops.find(s => s.id === currentShopId);
+  const market = markets.find(item => item.country_code === currentShop?.market_code);
+  const currency = market?.currency;
+  const countryFlag = market?.country_code?.toUpperCase().replace(/[A-Z]/g, char => String.fromCodePoint(127397+char.charCodeAt(0)));
   const [menuOpen, setMenuOpen] = useState(false);
   const userInitial = (authUser?.email || 'U').charAt(0).toUpperCase();
 
   return (
-    <header className="bg-white border-b border-slate-200 shrink-0 z-40 px-6 py-3 flex items-center justify-between shadow-xs">
-      <div className="flex items-center gap-4">
+    <header className="bg-white border-b border-slate-200 shrink-0 z-40 px-6 py-3 flex flex-wrap gap-3 items-center justify-between shadow-xs">
+      <div className="flex flex-wrap items-center gap-4">
         {/* Logo 与主标题 */}
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onNavigateTab('home')}>
           <div className="w-9 h-9 bg-gradient-to-tr from-rose-500 via-pink-600 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-base shadow-sm">
@@ -38,23 +42,25 @@ export default function Navbar({
         <div className="hidden md:flex items-center gap-2 pl-4 border-l border-slate-200 text-xs">
           <span className="text-slate-400">运营市场:</span>
           <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-md font-medium text-slate-700">
-            <span>🇲🇽 墨西哥 (MX)</span>
-            <span className="text-[10px] text-slate-400 font-mono">es / MXN</span>
+            <span>{market ? `${countryFlag} ${market.name} (${market.country_code})` : '未选择店铺'}</span>
+            <span className="text-[10px] text-slate-400 font-mono">{market ? `${market.default_language} / ${currency}` : '—'}</span>
           </div>
         </div>
+        <ExchangeRate currency={currency}/>
       </div>
 
       {/* 动态店铺下拉与控制 */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg text-xs">
           <Store className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
-          <span className="text-slate-500 font-medium">店铺过滤:</span>
+          <span className="text-slate-500 font-medium">当前店铺:</span>
           <select
             value={currentShopId}
             onChange={(e) => onSelectShop(e.target.value)}
-            className="bg-white border border-slate-200 rounded px-2.5 py-1 font-semibold text-slate-800 shadow-2xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            aria-label="当前店铺"
+            className="max-w-[240px] bg-white border border-slate-200 rounded px-2.5 py-1 font-semibold text-slate-800 shadow-2xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <option value="ALL">全部店铺汇总 ({shops.length} 个已激活)</option>
+            <option value="" disabled>{shops.length ? '请选择店铺' : '尚未绑定店铺'}</option>
             {shops.map((s, idx) => (
               <option key={s.id} value={s.id}>
                 {s.shop_name} ({s.tiktok_shop_id})
@@ -63,12 +69,12 @@ export default function Navbar({
           </select>
 
           <button
-            onClick={onOpenAddShop}
+            onClick={() => onNavigateTab('shops')}
             className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded font-medium transition flex items-center gap-1"
-            title="添加新店铺"
+            title="管理店铺、绑定与授权"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>绑定新店</span>
+            <Store className="w-3.5 h-3.5" />
+            <span>管理店铺</span>
           </button>
         </div>
 

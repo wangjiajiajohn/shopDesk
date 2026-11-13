@@ -39,7 +39,7 @@ const fmtMxTime = (sec) =>
     : '—';
 
 export default function OrdersView({ shops, showToast, initialContext }) {
-  const [shopId, setShopId] = useState(initialContext?.shopId || 'ALL');
+  const [shopId, setShopId] = useState(initialContext?.shopId || shops[0]?.id || '');
   const [orders, setOrders] = useState([]);            // 当前页订单（服务端分页）
   const [total, setTotal] = useState(0);               // 筛选后的服务端总数
   const [statusCounts, setStatusCounts] = useState({}); // 全店铺状态分布（不受筛选影响）
@@ -193,7 +193,6 @@ export default function OrdersView({ shops, showToast, initialContext }) {
             onChange={(e) => setShopId(e.target.value)}
             className="px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <option value="ALL">全部店铺</option>
             {shops.map((s) => (
               <option key={s.id} value={s.id}>{s.shop_name} ({s.tiktok_shop_id})</option>
             ))}

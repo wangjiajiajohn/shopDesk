@@ -28,7 +28,6 @@ const KB_CHILDREN = [
 export default function Sidebar({ currentTab, onSelectTab }) {
   const navItems = [
     { id: 'home', label: '工作台首页', icon: LayoutDashboard, badge: null, group: 'CORE' },
-    { id: 'shops', label: '市场与店铺管理', icon: Store, badge: '选国绑店', group: 'CORE' },
     { id: 'sourcing', label: '货源商品库', icon: Package, badge: 'SPU/SKU 矩阵', group: 'CORE' },
     { id: 'calculator', label: '定价计算器', icon: Calculator, badge: '保本/利润', badgeColor: 'bg-emerald-100 text-emerald-700', group: 'CORE' },
     { id: 'resources', label: '店铺资料库', icon: Library, badge: '账号/证件', badgeColor: 'bg-amber-100 text-amber-700', group: 'CORE' },

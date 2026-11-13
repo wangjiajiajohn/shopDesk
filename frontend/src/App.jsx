@@ -28,7 +28,7 @@ import AuthView from './views/AuthView';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
-  const [currentShopId, setCurrentShopId] = useState('ALL');
+  const [currentShopId, setCurrentShopId] = useState('');
   const [orderContext, setOrderContext] = useState(null);
 
   // 核心数据状态
@@ -42,23 +42,37 @@ export default function App() {
   const [authUser, setAuthUser] = useState(null);
   const [authChecking, setAuthChecking] = useState(true);
 
+  const [authError, setAuthError] = useState('');
+  const [authAttempt, setAuthAttempt] = useState(0);
   useEffect(() => {
-    const token = localStorage.getItem('shopdesk_token');
+    let active = true;
+    const token = api.getToken();
+    setAuthError(''); setAuthChecking(true);
     if (!token) { setAuthChecking(false); return; }
-    api.authMe().then((u) => { setAuthUser(u); setAuthChecking(false); })
-      .catch(() => { localStorage.removeItem('shopdesk_token'); setAuthChecking(false); });
-  }, []);
+    api.authMe().then(user => {
+      if (!active || api.getToken() !== token) return;
+      setAuthUser(user); setAuthChecking(false);
+    }).catch(error => {
+      if (!active || api.getToken() !== token) return;
+      if (error.status === 401) { api.setToken(null); setAuthUser(null); }
+      else setAuthError('暂时无法连接服务器，登录信息已保留。请重试，无需重新输入密码。');
+      setAuthChecking(false);
+    });
+    return () => { active = false; };
+  }, [authAttempt]);
 
-  const handleAuthSuccess = async () => {
-    try {
-      const u = await api.authMe();
-      setAuthUser(u);
-    } catch { /* token 无效，留在登录页 */ }
-  };
+  const handleAuthSuccess = () => { setAuthChecking(true); setAuthAttempt(value => value + 1); };
 
   const handleLogout = () => {
     api.authLogout();
     setAuthUser(null);
+    // 登出时清空所有业务数据，防止切换账号后残留上一账号的数据
+    setShops([]);
+    setSuppliers([]);
+    setProducts([]);
+    setMarkets([]);
+    setCredentials([]);
+    setAuthConfig({ is_configured: false });
   };
 
   // 弹窗状态
@@ -117,11 +131,36 @@ export default function App() {
     }
   };
 
+  const shopPreferenceKey = authUser?.id ? `shopdesk:last-shop:${authUser.id}` : null;
+  useEffect(() => {
+    if (!authUser || !shops.length) { setCurrentShopId(''); return; }
+    setCurrentShopId(current => {
+      const remembered = shopPreferenceKey ? localStorage.getItem(shopPreferenceKey) : null;
+      return shops.some(shop => shop.id === current) ? current : shops.find(shop => shop.id === remembered)?.id || shops[0].id;
+    });
+  }, [authUser?.id, shops, shopPreferenceKey]);
+  useEffect(() => {
+    if (shopPreferenceKey && shops.some(shop => shop.id === currentShopId)) localStorage.setItem(shopPreferenceKey, currentShopId);
+  }, [currentShopId, shopPreferenceKey, shops]);
+  const selectShop = id => { setOrderContext(null); setCurrentShopId(id); };
+  const scopedShops = shops.filter(shop => shop.id === currentShopId);
+
   const credentialMap = Object.fromEntries(credentials.map(c => [c.shop_id, c]));
 
+  // 初始化拉取数据 —— 仅在登录成功后执行，避免未登录时 401 触发重载死循环
   useEffect(() => {
-    loadAllData();
-  }, []);
+    if (authUser) {
+      loadAllData();
+    } else {
+      // 未登录状态清空数据，避免上一账号数据残留
+      setShops([]);
+      setSuppliers([]);
+      setProducts([]);
+      setMarkets([]);
+      setCredentials([]);
+      setAuthConfig({ is_configured: false });
+    }
+  }, [authUser]);
 
   // 店铺增删处理
   const handleAddShop = async (shopData) => {
@@ -195,6 +234,8 @@ export default function App() {
   return (
     authChecking ? (
       <div className="h-screen flex items-center justify-center bg-slate-50 text-slate-400 text-sm">加载中…</div>
+    ) : authError ? (
+      <div className="h-screen flex flex-col gap-4 items-center justify-center bg-slate-50 text-slate-700 text-sm"><p role="alert">{authError}</p><button className="px-4 py-2 rounded-lg bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" onClick={()=>setAuthAttempt(value=>value+1)}>重试连接</button></div>
     ) : !authUser ? (
       <AuthView onAuthSuccess={handleAuthSuccess} />
     ) : (
@@ -204,10 +245,8 @@ export default function App() {
         markets={markets}
         shops={shops}
         currentShopId={currentShopId}
-        onSelectShop={setCurrentShopId}
+        onSelectShop={selectShop}
         onOpenAddShop={() => setIsAddShopOpen(true)}
-                  selectedShopId={currentShopId}
-                  onOpenOrder={(shopId, orderId, attention, deadlineBucket) => {setOrderContext({ shopId, orderId, attention, deadlineBucket });setCurrentTab('orders');}}
         onNavigateTab={setCurrentTab}
         authUser={authUser}
         onLogout={handleLogout}
@@ -223,7 +262,7 @@ export default function App() {
 
         {/* 右侧视口：唯一纵向滚动容器 */}
         <main className="flex-1 min-w-0 overflow-y-auto p-6">
-          {loading ? (
+          {loading || (shops.length > 0 && !currentShopId) ? (
             <div className="flex items-center justify-center h-64 text-slate-400 text-xs">
               正在同步店铺与货源数据...
             </div>
@@ -239,7 +278,10 @@ export default function App() {
                   onNavigateTab={setCurrentTab}
                   onOpenAddShop={() => setIsAddShopOpen(true)}
                   selectedShopId={currentShopId}
-                  onOpenOrder={(shopId, orderId, attention, deadlineBucket) => {setOrderContext({ shopId, orderId, attention, deadlineBucket });setCurrentTab('orders');}}
+                  onOpenOrder={(shopId, orderId, attention, deadlineBucket) => {
+                    setOrderContext({ shopId, orderId, attention, deadlineBucket });
+                    setCurrentTab('orders');
+                  }}
                 />
               )}
 
@@ -250,8 +292,6 @@ export default function App() {
                   credentialMap={credentialMap}
                   onRefreshShops={loadAllData}
                   onOpenAddShop={() => setIsAddShopOpen(true)}
-                  selectedShopId={currentShopId}
-                  onOpenOrder={(shopId, orderId, attention, deadlineBucket) => {setOrderContext({ shopId, orderId, attention, deadlineBucket });setCurrentTab('orders');}}
                   onDeleteShop={handleDeleteShop}
                   onOpenAuth={(shop) => setAuthModalShop(shop)}
                 />
@@ -286,7 +326,7 @@ export default function App() {
               )}
 
               {currentTab === 'resources' && (
-                <ResourcesView showToast={showToast} />
+                <ResourcesView key={currentShopId} shops={scopedShops} showToast={showToast} />
               )}
 
               {/* 知识库：六个二级目录各自独立页面，共用 KbLayout 作用域 */}
@@ -310,11 +350,11 @@ export default function App() {
               )}
 
               {currentTab === 'listing' && (
-                <TikTokProductsView shops={shops} showToast={showToast} />
+                <TikTokProductsView key={currentShopId} shops={scopedShops} showToast={showToast} />
               )}
 
               {currentTab === 'orders' && (
-                <OrdersView shops={shops} showToast={showToast} initialContext={orderContext} />
+                <OrdersView key={currentShopId} shops={scopedShops} showToast={showToast} initialContext={{ ...orderContext, shopId: currentShopId }} />
               )}
 
               {currentTab === 'references' && (
@@ -385,6 +425,7 @@ export default function App() {
         suppliers={suppliers}
         onAddSupplier={handleAddSupplier}
         onDeleteSupplier={handleDeleteSupplier}
+
       />
 
       <QuickDistributeModal

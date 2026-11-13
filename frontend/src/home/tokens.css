@@ -1,4 +1,4 @@
-.home-dashboard, main:has(.home-dashboard) {
+.home-dashboard, .fx-widget, main:has(.home-dashboard) {
   color-scheme: light;
   --hd-bg: #f6f7fb;
   --hd-surface: #ffffff;
@@ -13,6 +13,7 @@
   --hd-amber: #b86a00;
   --hd-amber-text: #925300;
   --hd-amber-soft: #fff3df;
+  --hd-order-line: #6b7287;
   --hd-green: #17855b;
   --hd-radius: 12px;
   --hd-gap: 20px;

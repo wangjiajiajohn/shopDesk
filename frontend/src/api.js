@@ -24,7 +24,7 @@ export async function request(path, options = {}) {
     headers
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && getToken() === token) {
     setToken(null);
     if (!options._silent) window.location.reload();
   }
@@ -92,7 +92,11 @@ export const authMe = () =>
   fetch(`${AUTH_BASE}/auth/me`, {
     headers: { 'Authorization': `Bearer ${getToken()}` },
   }).then(async (r) => {
-    if (!r.ok) throw new Error('未登录');
+    if (!r.ok) {
+      const error = new Error(r.status === 401 ? '登录已失效，请重新登录' : '暂时无法校验登录状态，请重试');
+      error.status = r.status;
+      throw error;
+    }
     return r.json();
   });
 

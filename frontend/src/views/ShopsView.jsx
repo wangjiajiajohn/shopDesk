@@ -59,7 +59,7 @@ export default function ShopsView({
           className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition self-start"
         >
           <Plus className="w-4 h-4" />
-          <span>+ 授权绑定新 TikTok 店铺</span>
+          <span>授权绑定新 TikTok 店铺</span>
         </button>
       </div>
 

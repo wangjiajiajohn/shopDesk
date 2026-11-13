@@ -20,15 +20,15 @@ main:has(.home-dashboard) { background: var(--hd-bg); }
 .hd-primary:hover:not(:disabled) { color: var(--hd-primary); }
 .hd-alert-panel, .hd-chart-panel { background: var(--hd-surface); border: 1px solid var(--hd-line); border-radius: var(--hd-radius); padding: 14px; }
 .hd-alert-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
-.hd-alert-tag { display: flex; align-items: center; gap: 9px; text-align: left; min-width: 0; min-height: 64px; padding: 10px 12px; border: 1px solid var(--hd-line); border-radius: var(--hd-radius); background: transparent; color: var(--hd-text); }
+.hd-alert-tag { display: flex; align-items: center; gap: 9px; text-align: left; min-width: 0; min-height: 52px; padding: 10px 12px; border: 1px solid var(--hd-line); border-radius: var(--hd-radius); background: transparent; color: var(--hd-text); }
 .hd-alert-tag:hover { border-color: var(--hd-primary); }
 .hd-alert-tag.is-selected { outline: 2px solid var(--hd-primary); outline-offset: 2px; }
-.hd-alert-count { margin-left: auto; flex-shrink: 0; font-size: 26px; font-weight: 750; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--hd-muted); }
-.hd-alert-name { font-weight: 650; }
-.hd-alert-note { margin-left: auto; font-size: 11px; white-space: nowrap; color: var(--hd-muted); }
+.hd-alert-count { flex-shrink: 0; font-size: 26px; font-weight: 750; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--hd-muted); }
+.hd-alert-name { font-weight: 650; color: var(--hd-muted); white-space: nowrap; }
+.hd-alert-note { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 650; white-space: nowrap; color: var(--hd-danger-text); }
 .hd-warning-icon { display: inline-block; vertical-align: -3px; margin-right: 6px; color: var(--hd-danger-text); }
-.hd-hot { border-color: var(--hd-danger); background: var(--hd-danger-soft); }
-.hd-hot .hd-alert-count, .hd-hot .hd-alert-note { color: var(--hd-danger-text); }
+.hd-hot { border-color: var(--hd-line); background: var(--hd-surface); }
+.hd-hot .hd-alert-count { color: var(--hd-text); }
 .hd-warm { border-color: var(--hd-amber); background: var(--hd-amber-soft); }
 .hd-warm .hd-alert-count, .hd-warm .hd-alert-note { color: var(--hd-amber-text); }
 .hd-pulse { display: inline-block; width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--hd-danger); animation: hd-pulse 1.8s ease-in-out infinite; }
@@ -78,17 +78,16 @@ main:has(.home-dashboard) { background: var(--hd-bg); }
 .hd-chart-panel { margin-top: 18px; padding: 16px; }
 .hd-chart-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; color: var(--hd-muted); font-size: 12px; margin-bottom: 8px; }
 .hd-chart-legend > span { display: inline-flex; align-items: center; gap: 6px; }
-.hd-current-key, .hd-previous-key { width: 20px; border-top: 3px solid var(--hd-primary); }
-.hd-previous-key { border-top: 3px dashed var(--hd-amber); }
+.hd-bar-key { width: 9px; height: 11px; background: var(--hd-primary); border-radius: 2px; }
+.hd-line-key { width: 9px; height: 9px; background: var(--hd-order-line); border-radius: 50%; }
 .hd-text-button { color: var(--hd-primary); background: none; border: none; padding: 3px 0; margin-left: auto; }
 .hd-chart { position: relative; min-width: 0; }
 .hd-grid-line { stroke: var(--hd-line); stroke-width: 1; }
 .hd-axis-label { fill: var(--hd-muted); font-size: 11px; }
 .hd-gmv-bar { fill: var(--hd-primary); opacity: .85; }
 .hd-gmv-bar.is-active { opacity: 1; }
-.hd-current-line, .hd-previous-line { fill: none; stroke: var(--hd-primary); stroke-width: 2.5; }
-.hd-previous-line { stroke: var(--hd-amber); stroke-dasharray: 6 4; }
-.hd-order-dot { fill: var(--hd-amber); }
+.hd-orders-line { fill: none; stroke: var(--hd-order-line); stroke-width: 2.5; }
+.hd-order-dot { fill: var(--hd-order-line); }
 .hd-chart-tooltip { position: absolute; top: 8px; background: var(--hd-text); color: var(--hd-bg); border-radius: 6px; padding: 6px 10px; font-size: 12px; pointer-events: none; max-width: 70%; }
 .hd-table-scroll { max-height: 260px; overflow: auto; margin-top: 12px; }
 .hd-data-table { width: 100%; border-collapse: collapse; font-size: 12px; }

@@ -18,7 +18,7 @@ export default function HomeAlerts({ returns, returnsError, stockStats, stockErr
   const bucketCounts = Object.fromEntries(FILTERS.map(([key]) => [key, key === 'all' ? items.length : previewItems.filter(item => matchesDeadlineFilter(item.remaining, key)).length]));
   const overdue = bucketCounts.overdue, urgent = items.filter(item => item.urgent).length;
   const groups = [
-    { key: 'shipping', name: '发货不足24小时', available: !!monitor && !error, count: monitor && !error ? items.length : null, urgent, overdue },
+    { key: 'shipping', name: '待发货', available: !!monitor && !error, count: monitor && !error ? (monitor.total ?? monitor.items.length) : null, urgent, overdue },
     { key: 'returns', name: '待处理退货', available: !!returns, count: returns ? returns.total : null },
     { key: 'stock', name: '库存不足', available: !!stockStats, count: stockStats ? stockStats.alerts.length : null, urgent: stockStats?.alerts.filter(row => row.gap > 15).length || 0 },
     { key: 'reviews', name: '未处理负面评价', available: false, count: null },
@@ -44,10 +44,12 @@ export default function HomeAlerts({ returns, returnsError, stockStats, stockErr
     <div className="hd-alert-panel">
       <div className="hd-alert-summary">
         {groups.map(group => {
+          const note = group.key === 'shipping' ? group.available && items.length > 0 ? `${items.length}单不足24小时` : '' : group.urgent > 0 ? `${group.urgent}项紧急` : '';
           const level = group.urgent || (['shipping', 'stock'].includes(group.key) && group.count > 0) ? 'hot' : group.count > 0 ? 'warm' : 'neutral';
           return <button key={group.key} className={`hd-alert-tag hd-${level} ${expanded === group.key ? 'is-selected' : ''}`} aria-expanded={expanded === group.key} aria-controls={`hd-detail-${group.key}`} onClick={() => toggle(group.key)}>
-            <span className="hd-alert-name">{['shipping', 'stock'].includes(group.key) && group.count > 0 && <AlertTriangle className="hd-warning-icon" size={17} aria-hidden="true" />}{group.name}</span>
             <span className="hd-alert-count">{group.count ?? '—'}</span>
+            <span className="hd-alert-name">{group.name}</span>
+            {note && <span className="hd-alert-note">{note}<span className="hd-pulse" aria-hidden="true" /></span>}
           </button>;
         })}
       </div>
