@@ -14,6 +14,7 @@ DEFAULT_OWNER_USER_ID = "e281155c-91c7-499d-b642-75b0881c04c8"
 
 # 既有表需要补的列：table -> [(column, DDL fragment)]
 _ADDED_COLUMNS = {
+    "shop_orders": [("rts_sla_time", "INTEGER"), ("tts_sla_time", "INTEGER"), ("cancel_order_sla_time", "INTEGER")],
     "shop_products": [
         ("source_product_id", "VARCHAR(36)"),
         ("listing_draft_id", "VARCHAR(36)"),

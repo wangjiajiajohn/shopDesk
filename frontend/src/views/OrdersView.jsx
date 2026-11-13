@@ -4,11 +4,15 @@ import {
   Clock, ImageOff, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import * as api from '../api';
+import OrderFulfillment from '../components/OrderFulfillment';
+import { loadOrders } from '../home/data';
+import { matchesDeadlineFilter, alertRemaining } from '../home/stats';
 
 // 待履约合并视图（运营最关心的待办）
-const AWAITING_GROUP = ['AWAITING_SHIPMENT', 'AWAITING_COLLECTION'];
+const AWAITING_GROUP = ['AWAITING_SHIPMENT', 'PARTIALLY_SHIPPING', 'AWAITING_COLLECTION'];
 
 const FILTERS = [
+  { key: 'ATTENTION', label: '订单提醒' },
   { key: 'ALL', label: '全部' },
   { key: 'AWAITING', label: '待履约' },
   { key: 'IN_TRANSIT', label: '运输中' },
@@ -34,17 +38,21 @@ const fmtMxTime = (sec) =>
       })
     : '—';
 
-export default function OrdersView({ shops, showToast }) {
-  const [shopId, setShopId] = useState(shops[0]?.id || '');
+export default function OrdersView({ shops, showToast, initialContext }) {
+  const [shopId, setShopId] = useState(initialContext?.shopId || 'ALL');
   const [orders, setOrders] = useState([]);            // 当前页订单（服务端分页）
   const [total, setTotal] = useState(0);               // 筛选后的服务端总数
   const [statusCounts, setStatusCounts] = useState({}); // 全店铺状态分布（不受筛选影响）
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [filter, setFilter] = useState('ALL');
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [days, setDays] = useState(7);
+  const [filter, setFilter] = useState(initialContext?.attention ? 'ATTENTION' : 'ALL');
+  const [attentionCount, setAttentionCount] = useState(0);
+  const [deadlineFilter, setDeadlineFilter] = useState(initialContext?.deadlineBucket || 'all');
+  const [loadError, setLoadError] = useState('');
+  const syncLock = useRef(false);
+  const [query, setQuery] = useState(initialContext?.orderId || '');
+  const [debouncedQuery, setDebouncedQuery] = useState(initialContext?.orderId || '');
+  const [days, setDays] = useState(initialContext?.attention ? 90 : 7);
   const [page, setPage] = useState(1);
   const [reloadTick, setReloadTick] = useState(0);
 
@@ -62,7 +70,7 @@ export default function OrdersView({ shops, showToast }) {
   }, [query]);
 
   // 换店 / 切状态 / 搜索词变化时回到第一页
-  useEffect(() => { setPage(1); }, [shopId, filter, debouncedQuery]);
+  useEffect(() => { setPage(1); }, [shopId, filter, debouncedQuery, deadlineFilter]);
 
   // 请求驱动的分页加载：状态筛选与关键词全部下沉后端
   useEffect(() => {
@@ -71,45 +79,71 @@ export default function OrdersView({ shops, showToast }) {
     setLoading(true);
 
     const params = { page, page_size: PAGE_SIZE };
-    if (filter !== 'ALL') {
+    if (filter === 'ATTENTION') params.needs_attention = true;
+    else if (filter !== 'ALL') {
       params.status = filter === 'AWAITING' ? AWAITING_GROUP.join(',') : filter;
     }
     if (debouncedQuery) params.keyword = debouncedQuery;
 
-    api.getShopOrders(shopId, params)
+    const fetchPage = filter === 'ATTENTION' && deadlineFilter !== 'all'
+      ? loadOrders(shopId, { ...(deadlineFilter === 'under48' ? {} : { needs_attention: true }), ...(debouncedQuery ? { keyword: debouncedQuery } : {}) }).then(result => {
+          const filtered = result.items.filter(order => {
+            const seconds = order.monitor && alertRemaining(order.monitor);
+            return seconds != null && matchesDeadlineFilter(seconds, deadlineFilter);
+          });
+          return { ...result, total: filtered.length, attention_count: filtered.length, items: filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE) };
+        })
+      : api.getShopOrders(shopId, params);
+    fetchPage
       .then((res) => {
         if (seq !== reqSeq.current) return; // 过期响应直接丢弃
         const items = res.items || [];
         setOrders(items);
         setTotal(res.total || 0);
         setStatusCounts(res.status_counts || {});
+        setAttentionCount(res.attention_count || 0);
+        setLoadError('');
         // 页码越界回退（如同步后订单变少）：服务端还有数据但当前页为空，跳到真实末页
         const lastPage = Math.max(1, Math.ceil((res.total || 0) / PAGE_SIZE));
         if (items.length === 0 && res.total > 0 && page > lastPage) setPage(lastPage);
       })
       .catch((err) => {
-        if (seq === reqSeq.current) showToast(`订单加载失败: ${err.message}`, '✕');
+        if (seq === reqSeq.current) { setLoadError(err.message); showToast(`订单加载失败: ${err.message}`, '✕'); }
       })
       .finally(() => {
         if (seq === reqSeq.current) setLoading(false);
       });
-    return () => { /* seq 失效由 reqSeq 比对完成 */ };
+    return () => { reqSeq.current++; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, page, filter, debouncedQuery, reloadTick]);
+  }, [shopId, page, filter, debouncedQuery, reloadTick, deadlineFilter]);
 
   const handleSync = async () => {
-    if (!shopId || syncing) return;
+    if (!shopId || syncLock.current) return;
+    syncLock.current = true;
     setSyncing(true);
     try {
-      const r = await api.syncShopOrders(shopId, days);
-      showToast(`订单同步完成：近 ${r.range_days} 天拉取 ${r.fetched} 单（新增 ${r.created} / 更新 ${r.updated}）`);
+      const targets = shopId === 'ALL' ? shops : shops.filter(s => s.id === shopId);
+      let fetched = 0;
+      const failures = [];
+      for (const shop of targets) {
+        try { const result = await api.syncShopOrders(shop.id, days); fetched += result.fetched; }
+        catch (err) { failures.push(`${shop.shop_name}：${err.message}`); }
+      }
+      showToast(failures.length ? `部分同步失败：${failures.join('；')}` : `订单同步完成：拉取 ${fetched} 单`, failures.length ? '✕' : '✓');
       setReloadTick((t) => t + 1);
     } catch (err) {
       showToast(`TikTok 订单同步失败: ${err.message}`, '✕');
     } finally {
+      syncLock.current = false;
       setSyncing(false);
     }
   };
+
+  useEffect(() => {
+    const refresh = setInterval(() => { if (!document.hidden) setReloadTick(t => t + 1); }, 60000);
+    const sync = setInterval(() => { if (!document.hidden) handleSync(); }, 5 * 60000);
+    return () => { clearInterval(refresh); clearInterval(sync); };
+  }, [shopId, days]);
 
   // 当前页订单拆成 SKU 行：同订单多明细时订单级字段仅首行显示
   const pageRows = useMemo(() => orders.flatMap((o) => {
@@ -152,12 +186,14 @@ export default function OrdersView({ shops, showToast }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start">
+        <div className="flex flex-wrap items-center gap-2 self-start">
           <select
+            aria-label="订单所属店铺"
             value={shopId}
             onChange={(e) => setShopId(e.target.value)}
             className="px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
+            <option value="ALL">全部店铺</option>
             {shops.map((s) => (
               <option key={s.id} value={s.id}>{s.shop_name} ({s.tiktok_shop_id})</option>
             ))}
@@ -187,7 +223,7 @@ export default function OrdersView({ shops, showToast }) {
       <div className="sticky top-0 z-20 bg-white p-3 rounded-xl border border-slate-200 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-1.5 flex-wrap">
           {FILTERS.map((f) => {
-            const count = f.key === 'AWAITING'
+            const count = f.key === 'ATTENTION' ? attentionCount : f.key === 'AWAITING'
               ? AWAITING_GROUP.reduce((sum, st) => sum + (statusCounts[st] || 0), 0)
               : f.key === 'ALL'
                 ? Object.values(statusCounts).reduce((sum, n) => sum + n, 0)
@@ -218,27 +254,31 @@ export default function OrdersView({ shops, showToast }) {
         </div>
       </div>
 
+      {filter === 'ATTENTION' && deadlineFilter !== 'all' && <p className="text-sm text-slate-700">时限筛选：{{ overdue:'已超时', under6:'不足6小时', six24:'6–24小时', under24:'不足24小时', under48:'不足48小时' }[deadlineFilter]}<button className="ml-3 text-indigo-700 underline focus-visible:outline focus-visible:outline-2" onClick={()=>setDeadlineFilter('all')}>清除时限筛选</button></p>}
+      <p className="text-xs text-slate-600">提醒提前24小时触发；下方显示平台真实截止时间与剩余时间（墨西哥城）。页面可见时每5分钟同步平台，每分钟刷新倒计时。</p>
+      {loadError && <div role="alert" className="text-sm text-rose-800">订单读取失败：{loadError}<button className="ml-2 underline focus-visible:outline focus-visible:outline-2" onClick={() => setReloadTick(t => t + 1)}>重试</button></div>}
       {/* 订单表：每个 SKU 明细一行；同一订单多明细时，订单号/创建时间/付款金额仅首行展示，续行底色区分 */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-        <table className="w-full text-left text-xs text-slate-600">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-2xs">
+        <table className="w-full min-w-[1100px] text-left text-xs text-slate-600">
           <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[11px]">
             <tr>
               <th className="p-3.5 w-24">SKU 图</th>
               <th className="p-3.5">订单 ID</th>
               <th className="p-3.5">商品名</th>
               <th className="p-3.5">SKU</th>
+              <th className="p-3.5">履约状态与截止</th>
               <th className="p-3.5">创建时间 (墨西哥)</th>
               <th className="p-3.5 text-right">付款金额</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan="6" className="p-8 text-center text-slate-400">加载中...</td></tr>
+              <tr><td colSpan="7" className="p-8 text-center text-slate-400">加载中...</td></tr>
             ) : total === 0 ? (
               <tr>
-                <td colSpan="6" className="p-10 text-center text-slate-400">
+                <td colSpan="7" className="p-10 text-center text-slate-400">
                   <PackageSearch className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                  {hasActiveFilter ? '没有匹配的订单，换个关键词或清除筛选试试' : '本地还没有订单，选择时间范围后点击「同步订单」'}
+                  {loadError ? '订单暂时无法读取，请重试' : hasActiveFilter ? '没有匹配的订单，换个关键词或清除筛选试试' : '当前快照没有订单，选择时间范围后点击「同步订单」'}
                 </td>
               </tr>
             ) : (
@@ -263,12 +303,13 @@ export default function OrdersView({ shops, showToast }) {
                     </div>
                   </td>
                   <td className="p-3.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">
-                    {isFirst ? o.tiktok_order_id : ''}
+                    {isFirst ? <><div>{o.tiktok_order_id}</div><div className="text-slate-600 font-sans mt-1">{o.shop_name}</div></> : ''}
                   </td>
                   <td className="p-3.5 max-w-[320px]">
                     <div className="line-clamp-2 text-slate-800 font-medium">{li?.product_name || '—'}</div>
                   </td>
                   <td className="p-3.5 font-mono text-slate-500 whitespace-nowrap">{li?.seller_sku || '—'}</td>
+                  <td className="p-3.5">{isFirst ? <OrderFulfillment order={o} /> : ''}</td>
                   <td className="p-3.5 text-slate-500 whitespace-nowrap">
                     {isFirst ? (
                       <span className="flex items-center gap-1">

@@ -4,7 +4,7 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import case, cast, func, or_, select, String
+from sqlalchemy import and_, case, cast, func, or_, select, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -170,6 +170,7 @@ async def list_shop_orders(
     keyword: Optional[str] = Query(None, description="匹配订单号 / line_items JSON 内的商品名与商家 SKU"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    needs_attention: bool = False,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_user),
 ) -> dict:
@@ -178,10 +179,21 @@ async def list_shop_orders(
     返回 {items, total, page, page_size, status_counts}；status_counts 为该店铺
     全量订单的状态分布（不受 status/keyword 过滤影响），供前端筛选 tab 计数。
     """
-    shop = await db.get(Shop, shop_id)
-    if not shop or shop.user_id != str(user.id):
-        raise HTTPException(status_code=404, detail=f"店铺不存在: {shop_id}")
-    filters = [ShopOrder.shop_id == shop_id]
+    from app.services.order_monitor import PENDING, PREPARING, WARNING_SECONDS, classify_order
+    owned = (await db.execute(select(Shop).where(Shop.user_id == str(user.id)))).scalars().all()
+    shop_names = {shop.id: shop.shop_name for shop in owned if shop_id == "ALL" or shop.id == shop_id}
+    if shop_id != "ALL" and not shop_names:
+        raise HTTPException(status_code=404, detail="店铺不存在")
+    scope = ShopOrder.shop_id.in_(shop_names)
+    filters = [scope]
+    now = int(datetime.now().timestamp())
+    deadline = case((ShopOrder.status.in_(PREPARING), ShopOrder.rts_sla_time), else_=ShopOrder.tts_sla_time)
+    attention = and_(ShopOrder.status.in_(PENDING), or_(
+        deadline <= now + WARNING_SECONDS, deadline.is_(None),
+        ShopOrder.cancel_order_sla_time <= now + WARNING_SECONDS,
+    ))
+    if needs_attention:
+        filters.append(attention)
 
     if status:
         statuses = [s.strip() for s in status.split(",") if s.strip()]
@@ -207,7 +219,13 @@ async def list_shop_orders(
     rows = (await db.execute(
         select(ShopOrder)
         .where(*filters)
-        .order_by(ShopOrder.tiktok_create_time.desc())
+        .order_by(
+            case((and_(ShopOrder.status.in_(PENDING), ShopOrder.cancel_order_sla_time <= now + WARNING_SECONDS), 0),
+                 (and_(ShopOrder.status.in_(PENDING), deadline <= now), 1),
+                 (and_(ShopOrder.status.in_(PENDING), deadline <= now + WARNING_SECONDS), 2),
+                 (and_(ShopOrder.status.in_(PENDING), deadline.is_(None)), 3), else_=4),
+            case((ShopOrder.status.in_(PENDING), deadline), else_=None).asc().nullslast(), ShopOrder.tiktok_create_time.desc(),
+        )
         .offset((page - 1) * page_size)
         .limit(page_size)
     )).scalars().all()
@@ -215,7 +233,7 @@ async def list_shop_orders(
     # 全量状态分布（仅按店铺，不带筛选条件），保持筛选 tab 计数稳定
     status_rows = (await db.execute(
         select(ShopOrder.status, func.count(ShopOrder.id))
-        .where(ShopOrder.shop_id == shop_id)
+        .where(scope)
         .group_by(ShopOrder.status)
     )).all()
     status_counts = {st: int(n) for st, n in status_rows}
@@ -230,16 +248,19 @@ async def list_shop_orders(
     image_fallback = {}
     if missing_product_ids:
         product_rows = (await db.execute(
-            select(ShopProduct.tiktok_product_id, ShopProduct.main_image_url).where(
-                ShopProduct.shop_id == shop_id,
+            select(ShopProduct.shop_id, ShopProduct.tiktok_product_id, ShopProduct.main_image_url).where(
+                ShopProduct.shop_id.in_(shop_names),
                 ShopProduct.tiktok_product_id.in_(missing_product_ids),
             )
         )).all()
-        image_fallback = {pid: url for pid, url in product_rows if url}
+        image_fallback = {(sid, pid): url for sid, pid, url in product_rows if url}
 
     items = [
         {
             "id": r.id,
+            "shop_id": r.shop_id,
+            "shop_name": shop_names[r.shop_id],
+            "monitor": classify_order(r, now) if r.status in PENDING else None,
             "tiktok_order_id": r.tiktok_order_id,
             "status": r.status,
             "currency": r.currency,
@@ -250,7 +271,7 @@ async def list_shop_orders(
                 {
                     **li,
                     # 优先 SKU 变体图，缺失时回退商品主图；两者皆无则为 None，前端显示占位
-                    "image_url": li.get("sku_image") or image_fallback.get(li.get("product_id")),
+                    "image_url": li.get("sku_image") or image_fallback.get((r.shop_id, li.get("product_id"))),
                 }
                 for li in (r.line_items or [])
             ],
@@ -267,4 +288,54 @@ async def list_shop_orders(
         "page": page,
         "page_size": page_size,
         "status_counts": status_counts,
+        "attention_count": int((await db.execute(select(func.count(ShopOrder.id)).where(scope, attention))).scalar_one()),
+    }
+
+
+@router.get("/order-monitor")
+async def order_monitor(
+    shop_id: Optional[str] = None,
+    stage: Optional[str] = Query(None, pattern="^(preparing|collection)$"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """Account-scoped cached fulfillment alerts; never reports missing SLA as healthy."""
+    from app.services.order_monitor import PENDING, classify_order
+
+    shops = (await db.execute(select(Shop).where(Shop.user_id == str(user.id)))).scalars().all()
+    if shop_id and shop_id not in {s.id for s in shops}:
+        raise HTTPException(status_code=404, detail="店铺不存在")
+    selected = [s for s in shops if not shop_id or s.id == shop_id]
+    names = {s.id: s.shop_name for s in selected}
+    rows = (await db.execute(select(ShopOrder).where(
+        ShopOrder.shop_id.in_(names), ShopOrder.status.in_(PENDING),
+    ))).scalars().all()
+    now = int(datetime.now().timestamp())
+    counts = {key: 0 for key in ("preparing", "collection", "overdue", "due_soon", "cancellation", "unknown", "on_track")}
+    items = []
+    for row in rows:
+        alert = classify_order(row, now)
+        counts[alert["stage"]] += 1
+        counts[alert["risk"]] += 1
+        items.append({
+            **alert, "shop_id": row.shop_id, "shop_name": names[row.shop_id],
+            "order_id": row.tiktok_order_id, "status": row.status,
+            "created_time": row.tiktok_create_time,
+            "product_name": next((li.get("product_name") for li in (row.line_items or []) if li.get("product_name")), "商品信息待同步"),
+            "seller_skus": sorted({li.get("seller_sku") for li in (row.line_items or []) if li.get("seller_sku")}),
+        })
+    priority = {"cancellation": 0, "overdue": 1, "due_soon": 2, "unknown": 3, "on_track": 4}
+    items.sort(key=lambda item: (priority[item["risk"]], item["cancel_deadline"] if item["risk"] == "cancellation" else item["deadline"] or float("inf"), item["order_id"]))
+    if stage:
+        items = [item for item in items if item["stage"] == stage]
+    snapshots = (await db.execute(select(ShopOrder.shop_id, func.max(ShopOrder.synced_at)).where(
+        ShopOrder.shop_id.in_(names),
+    ).group_by(ShopOrder.shop_id))).all()
+    return {
+        "items": items[(page - 1) * page_size:page * page_size], "total": len(items),
+        "counts": counts, "page": page, "page_size": page_size,
+        "evaluated_at": now, "warning_hours": 24,
+        "shops": [{"id": s.id, "name": s.shop_name, "last_order_snapshot_at": next((t.replace(tzinfo=ZoneInfo("UTC")).isoformat() for sid, t in snapshots if sid == s.id and t), None)} for s in selected],
     }

@@ -1,0 +1,44 @@
+.api-catalog { color:var(--hd-text); max-width:1400px; margin:0 auto; font-size:14px; line-height:1.55; color-scheme:light; }
+.api-catalog * { box-sizing:border-box; }
+.api-catalog h1 { margin:0; font-size:24px; font-weight:700; }
+.api-catalog p { margin:0; }
+.ac-header { display:flex; gap:var(--hd-gap); justify-content:space-between; align-items:center; margin-bottom:var(--hd-gap); }
+.ac-header p { color:var(--hd-muted); margin-top:6px; }
+.ac-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:var(--hd-control-target); padding:8px 14px; border:1px solid var(--hd-line); border-radius:var(--hd-radius); background:var(--hd-surface); color:var(--hd-text); white-space:nowrap; cursor:pointer; }
+.ac-button:hover { background:var(--hd-primary-soft); }
+.ac-button:disabled { opacity:.5; cursor:default; }
+.ac-source { display:flex; flex-wrap:wrap; gap:8px 24px; color:var(--hd-muted); padding-bottom:20px; border-bottom:1px solid var(--hd-line); }
+.api-catalog a { display:inline-flex; align-items:center; gap:5px; color:var(--hd-primary); text-underline-offset:3px; }
+.ac-source a { margin-left:auto; }
+.ac-toolbar { display:flex; flex-wrap:wrap; align-items:end; gap:14px; padding:24px 0 14px; }
+.ac-toolbar label { display:flex; flex-direction:column; gap:6px; color:var(--hd-muted); font-size:12px; }
+.ac-toolbar select,.ac-toolbar input { min-height:var(--hd-control-target); border:1px solid var(--hd-line); border-radius:var(--hd-radius); padding:9px 12px; background:var(--hd-surface); color:var(--hd-text); font:inherit; font-size:14px; }
+.ac-toolbar .ac-search { flex:1; min-width:260px; position:relative; display:block; }
+.ac-search svg { position:absolute; left:12px; top:13px; color:var(--hd-muted); }
+.ac-search input { width:100%; padding-left:38px; }
+.ac-search input::placeholder { color:var(--hd-muted); }
+.ac-results-heading { display:flex; gap:20px; align-items:center; flex-wrap:wrap; margin-bottom:14px; color:var(--hd-muted); }
+.ac-results-heading p { margin-right:auto; }
+.ac-checkbox { display:inline-flex; gap:8px; align-items:center; min-height:36px; }
+.ac-checkbox input { accent-color:var(--hd-primary); width:16px; height:16px; }
+.ac-text-button { border:0; color:var(--hd-primary); background:transparent; cursor:pointer; padding:8px; }
+.ac-table-wrap { overflow-x:auto; border:1px solid var(--hd-line); border-radius:var(--hd-radius); background:var(--hd-surface); }
+.ac-table { width:100%; border-collapse:collapse; text-align:left; min-width:780px; }
+.ac-table th { background:var(--hd-bg); color:var(--hd-muted); font-size:12px; font-weight:600; padding:12px 16px; }
+.ac-table td { vertical-align:top; padding:16px; border-top:1px solid var(--hd-line); }
+.ac-table th:nth-child(1) { width:31%; }.ac-table th:nth-child(2) { width:39%; }.ac-table th:nth-child(3) { width:17%; }
+.ac-table summary { cursor:pointer; font-weight:600; overflow-wrap:anywhere; }
+.ac-table code { display:block; white-space:normal; overflow-wrap:anywhere; font-size:12px; margin-top:6px; color:var(--hd-muted); }
+.ac-method { font-size:11px; font-weight:700; color:var(--hd-primary); }
+.ac-operation,.ac-table small { display:block; font-size:12px; color:var(--hd-muted); margin-top:6px; }
+.ac-verified { color:var(--hd-green); font-size:12px; white-space:nowrap; }.ac-unverified { color:var(--hd-muted); font-size:12px; white-space:nowrap; }
+.ac-details { margin-top:12px; color:var(--hd-muted); font-size:12px; font-weight:400; }
+.ac-details dl { margin:12px 0; }.ac-details dt { font-weight:600; margin-top:8px; }.ac-details dd { margin:0; overflow-wrap:anywhere; }
+.ac-details p { margin:10px 0; }
+.ac-empty { padding:40px; text-align:center; color:var(--hd-muted); }
+.ac-footer { display:flex; align-items:center; gap:20px; justify-content:space-between; margin-top:16px; color:var(--hd-muted); font-size:12px; }
+.ac-footer nav { display:flex; align-items:center; gap:12px; white-space:nowrap; }
+.ac-notes { margin-top:24px; color:var(--hd-muted); font-size:12px; }.ac-notes summary { cursor:pointer; }.ac-notes ul { padding-left:20px; }
+.api-catalog :is(button,a,input,select,summary):focus-visible { outline:2px solid var(--hd-primary); outline-offset:3px; }
+.api-catalog ::selection { background:var(--hd-primary-soft); color:var(--hd-text); }
+@media(max-width:860px) { .ac-header { align-items:flex-start; }.ac-source a { margin-left:0; }.ac-toolbar label { flex:1; }.ac-toolbar select { width:100%; }.ac-footer { align-items:flex-start; flex-direction:column; } }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import HomeView from './views/HomeView';
+const ApiCatalogView = React.lazy(() => import('./views/ApiCatalogView'));
 import ShopsView from './views/ShopsView';
 import SourcingView from './views/SourcingView';
 import CalculatorView from './calculator/CalculatorView';
@@ -28,6 +29,7 @@ import AuthView from './views/AuthView';
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
   const [currentShopId, setCurrentShopId] = useState('ALL');
+  const [orderContext, setOrderContext] = useState(null);
 
   // 核心数据状态
   const [markets, setMarkets] = useState([]);
@@ -204,6 +206,8 @@ export default function App() {
         currentShopId={currentShopId}
         onSelectShop={setCurrentShopId}
         onOpenAddShop={() => setIsAddShopOpen(true)}
+                  selectedShopId={currentShopId}
+                  onOpenOrder={(shopId, orderId, attention, deadlineBucket) => {setOrderContext({ shopId, orderId, attention, deadlineBucket });setCurrentTab('orders');}}
         onNavigateTab={setCurrentTab}
         authUser={authUser}
         onLogout={handleLogout}
@@ -225,6 +229,7 @@ export default function App() {
             </div>
           ) : (
             <>
+              {currentTab === 'api-catalog' && <React.Suspense fallback={<p role="status">正在打开接口资料库…</p>}><ApiCatalogView credentials={credentials} selectedShopId={currentShopId}/></React.Suspense>}
               {currentTab === 'home' && (
                 <HomeView
                   shops={shops}
@@ -233,6 +238,8 @@ export default function App() {
                   showToast={showToast}
                   onNavigateTab={setCurrentTab}
                   onOpenAddShop={() => setIsAddShopOpen(true)}
+                  selectedShopId={currentShopId}
+                  onOpenOrder={(shopId, orderId, attention, deadlineBucket) => {setOrderContext({ shopId, orderId, attention, deadlineBucket });setCurrentTab('orders');}}
                 />
               )}
 
@@ -243,6 +250,8 @@ export default function App() {
                   credentialMap={credentialMap}
                   onRefreshShops={loadAllData}
                   onOpenAddShop={() => setIsAddShopOpen(true)}
+                  selectedShopId={currentShopId}
+                  onOpenOrder={(shopId, orderId, attention, deadlineBucket) => {setOrderContext({ shopId, orderId, attention, deadlineBucket });setCurrentTab('orders');}}
                   onDeleteShop={handleDeleteShop}
                   onOpenAuth={(shop) => setAuthModalShop(shop)}
                 />
@@ -305,7 +314,7 @@ export default function App() {
               )}
 
               {currentTab === 'orders' && (
-                <OrdersView shops={shops} showToast={showToast} />
+                <OrdersView shops={shops} showToast={showToast} initialContext={orderContext} />
               )}
 
               {currentTab === 'references' && (

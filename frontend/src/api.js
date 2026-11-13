@@ -1,5 +1,5 @@
-const API_BASE = 'http://localhost:8088/api';
-const AUTH_BASE = 'http://localhost:8088'; // fastapi-users 路由在 /auth 而非 /api/auth
+const API_BASE = '/api';
+const AUTH_BASE = ''; // fastapi-users 路由在 /auth 而非 /api/auth
 
 export function getToken() {
   return localStorage.getItem('shopdesk_token');
@@ -203,3 +203,9 @@ export const revealAccountField = (id, field) => request(`/resources/accounts/${
 export const getResourceFiles = () => request('/resources/files');
 export const fileDownloadUrl = (category, name) =>
   `${API_BASE}/resources/files/download?category=${encodeURIComponent(category)}&name=${encodeURIComponent(name)}`;
+
+export const getOrderMonitor = (params = {}) => {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined));
+  return request(`/tiktok/order-monitor?${query}`);
+};
+export const getReturnMonitor = (shopId = 'ALL') => request(`/tiktok/return-monitor?shop_id=${encodeURIComponent(shopId)}`);

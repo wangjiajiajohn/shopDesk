@@ -39,3 +39,6 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
+
+# Local live-development process state
+.shopdesk-dev/

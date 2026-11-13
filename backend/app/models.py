@@ -375,6 +375,10 @@ class ShopOrder(Base):
     tiktok_create_time = Column(Integer, nullable=True, index=True)
     tiktok_update_time = Column(Integer, nullable=True)
 
+    rts_sla_time = Column(Integer, nullable=True)
+    tts_sla_time = Column(Integer, nullable=True)
+    cancel_order_sla_time = Column(Integer, nullable=True)
+
     synced_at = Column(DateTime, default=datetime.utcnow, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

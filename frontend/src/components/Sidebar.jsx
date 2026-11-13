@@ -132,6 +132,8 @@ export default function Sidebar({ currentTab, onSelectTab }) {
           学习与参考
         </div>
 
+        {renderNavButton({ id: 'api-catalog', label: 'TikTok 接口资料库', icon: BookOpen })}
+
         {/* 知识库：hover 触发 fixed 浮层（浮层渲染在组件根部，不受 nav 滚动裁剪） */}
         <div
           ref={kbBtnRef}

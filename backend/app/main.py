@@ -53,3 +53,6 @@ async def health_check():
         "service": "ShopDesk Backend",
         "version": "1.0.0"
     }
+
+from app.routers import tiktok_returns
+app.include_router(tiktok_returns.router)

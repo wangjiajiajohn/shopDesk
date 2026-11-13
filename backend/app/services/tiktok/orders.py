@@ -52,6 +52,16 @@ def _to_float(value) -> Optional[float]:
         return None
 
 
+def _positive_timestamp(value) -> Optional[int]:
+    try:
+        if isinstance(value, bool):
+            return None
+        result = int(value)
+        return result if result > 0 else None
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
 def normalize_order(order: dict) -> dict:
     """白名单提取订单字段；买家邮箱、收件地址、user_id 等隐私数据直接丢弃。"""
     if not isinstance(order, dict):
@@ -86,6 +96,9 @@ def normalize_order(order: dict) -> dict:
         "is_cod": bool(order.get("is_cod")),
         "shipping_type": order.get("shipping_type"),
         "fulfillment_type": order.get("fulfillment_type"),
+        "rts_sla_time": _positive_timestamp(order.get("rts_sla_time")),
+        "tts_sla_time": _positive_timestamp(order.get("tts_sla_time")),
+        "cancel_order_sla_time": _positive_timestamp(order.get("cancel_order_sla_time")),
         "paid_time": order.get("paid_time"),
         "tiktok_create_time": order.get("create_time"),
         "tiktok_update_time": order.get("update_time"),

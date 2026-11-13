@@ -1,0 +1,21 @@
+.home-dashboard, main:has(.home-dashboard) {
+  color-scheme: light;
+  --hd-bg: #f6f7fb;
+  --hd-surface: #ffffff;
+  --hd-text: #1c2033;
+  --hd-muted: #626b80;
+  --hd-line: #e6e8f0;
+  --hd-primary: #4f46e5;
+  --hd-primary-soft: #eceafd;
+  --hd-danger: #d6334a;
+  --hd-danger-text: #ba263d;
+  --hd-danger-soft: #fdecef;
+  --hd-amber: #b86a00;
+  --hd-amber-text: #925300;
+  --hd-amber-soft: #fff3df;
+  --hd-green: #17855b;
+  --hd-radius: 12px;
+  --hd-gap: 20px;
+  --hd-control-target: 44px;
+  --hd-date-width: 184px;
+}

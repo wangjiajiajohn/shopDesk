@@ -1,0 +1,26 @@
+import { useMemo, useState } from 'react';
+import { Search, Download, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import catalog from '../data/tiktok-api-catalog.json';
+import '../home/tokens.css';
+import '../components/api-catalog/catalog.css';
+
+const operationLabel = { query:'查询 / 计算', write:'写入 / 授权 / 任务' };
+export default function ApiCatalogView({ credentials = [], selectedShopId = 'ALL' }) {
+  const [search,setSearch]=useState(''), [group,setGroup]=useState(''), [operation,setOperation]=useState(''), [verified,setVerified]=useState(false), [page,setPage]=useState(1);
+  const selectedCredentials=credentials.filter(c=>selectedShopId==='ALL'||c.shop_id===selectedShopId);
+  const authorization = row => !row.scopeKey ? '权限未核对' : !selectedCredentials.length ? '尚未读取店铺授权' : selectedCredentials.some(c=>(c.granted_scopes||[]).includes(row.scopeKey)) ? '店铺令牌包含权限' : '店铺令牌未含权限';
+  const groups=useMemo(()=>[...new Map(catalog.items.map(r=>[r.group,r.groupZh])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'zh-CN')),[]);
+  const rows=useMemo(()=>catalog.items.filter(r=>(!group||r.group===group)&&(!operation||r.operation===operation)&&(!verified||r.verified)&&`${r.name} ${r.path} ${r.group} ${r.groupZh} ${r.scopeKey||''} ${r.verificationNote}`.toLowerCase().includes(search.trim().toLowerCase())),[search,group,operation,verified]);
+  const pages=Math.max(1,Math.ceil(rows.length/30)), current=Math.min(page,pages), visible=rows.slice((current-1)*30,current*30);
+  const update=setter=>event=>{setter(event.target.value);setPage(1);};
+  const download=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(catalog,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='tiktok-api-catalog.json';a.click();URL.revokeObjectURL(url);};
+  return <section className="home-dashboard api-catalog" aria-labelledby="api-catalog-title">
+    <header className="ac-header"><div><h1 id="api-catalog-title">TikTok 接口资料库</h1><p>按业务查接口，保留验证结论。这里只查阅资料，不会调用或修改店铺数据。</p></div><button className="ac-button" onClick={download}><Download size={16} aria-hidden="true"/>导出目录</button></header>
+    <div className="ac-source"><span>官方测试工具目录 · {catalog.capturedAt} 快照</span><span>{catalog.items.length} 条接口记录 · {groups.length} 个有接口的权限分组</span><a href={catalog.sourceUrl} target="_blank" rel="noopener noreferrer">官方来源<ExternalLink size={13}/></a></div>
+    <div className="ac-toolbar"><label className="ac-search"><Search size={18} aria-hidden="true"/><input type="search" aria-label="搜索接口" placeholder="搜索接口、路径、业务或权限，例如退货、reviews" value={search} onChange={update(setSearch)}/></label><label>业务分组<select value={group} onChange={update(setGroup)}><option value="">全部业务分组</option>{groups.map(([key,name])=><option key={key} value={key}>{name}</option>)}</select></label><label>操作类型<select value={operation} onChange={update(setOperation)}><option value="">全部类型</option><option value="query">查询 / 计算</option><option value="write">写入 / 授权 / 任务</option></select></label></div>
+    <div className="ac-results-heading"><p role="status">找到 <strong>{rows.length}</strong> 条记录</p><label className="ac-checkbox"><input type="checkbox" checked={verified} onChange={event=>{setVerified(event.target.checked);setPage(1);}}/>只看已验证读取</label><button className="ac-text-button" onClick={()=>{setSearch('');setGroup('');setOperation('');setVerified(false);setPage(1);}}>清除筛选</button></div>
+    <div className="ac-table-wrap"><table className="ac-table"><thead><tr><th scope="col">接口与用途</th><th scope="col">方法与路径</th><th scope="col">业务分组</th><th scope="col">验证情况</th></tr></thead><tbody>{visible.map(r=><tr key={r.id}><td><details><summary>{r.name}</summary><div className="ac-details"><p>{r.operationNote}</p><dl><dt>权限分组</dt><dd>{r.group}</dd><dt>Scope Key</dt><dd>{r.scopeKey||'尚未逐项核对'}</dd><dt>已核对版本</dt><dd>{r.version}</dd><dt>市场限制</dt><dd>{r.marketNote}</dd><dt>测试工具状态</dt><dd>{r.testToolSelectable?'目录中可选择':'目录中禁用'}（采集时快照，不代表店铺授权）</dd></dl><p>{authorization(r)}。权限存在也不代表该市场全部接口可用。</p><p>{r.verificationNote}</p><p>请求参数与返回结构尚未逐项归档，调用前需查官方文档。本页不保存令牌或应用密钥。</p><a href={r.documentationUrl} target="_blank" rel="noopener noreferrer">{r.name==='Search Returns'?'打开该接口官方文档':'打开官方接口目录'}<ExternalLink size={13}/></a></div></details><span className="ac-operation">{operationLabel[r.operation]}</span></td><td><span className="ac-method">{r.method}</span><code>{r.path}</code></td><td>{r.groupZh}</td><td><span className={r.verified?'ac-verified':'ac-unverified'}>{r.verified?'读取已验证':'未验证'}</span><small>{authorization(r)}</small>{r.verified&&<small>版本 {r.version}</small>}</td></tr>)}</tbody></table>{!rows.length&&<div className="ac-empty">没有匹配的接口，试试英文名称或清除筛选。</div>}</div>
+    <footer className="ac-footer"><p>同一路径可能属于多个权限包，因此保留重复归属。版本占位符不代表已支持全部版本。</p><nav aria-label="接口目录分页"><button className="ac-button" disabled={current===1} onClick={()=>setPage(current-1)} aria-label="上一页"><ChevronLeft size={16}/></button><span>{current} / {pages}</span><button className="ac-button" disabled={current===pages} onClick={()=>setPage(current+1)} aria-label="下一页"><ChevronRight size={16}/></button></nav></footer>
+    <details className="ac-notes"><summary>收录范围与当前能力说明</summary><ul>{catalog.notes.map(note=><li key={note}>{note}</li>)}</ul><p>评价：目录中仅发现禁用的评价删除接口，未找到墨西哥店铺可用的评价读取与回复状态查询。SPS差评分析当前官方限定美国站。</p></details>
+  </section>;
+}
