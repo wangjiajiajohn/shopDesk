@@ -1,35 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { Package, X, AlertCircle, Boxes } from 'lucide-react';
+import { Package, X, AlertCircle, Upload, ImagePlus, Trash2, Plus, Minus } from 'lucide-react';
 import CategoryCascader from './CategoryCascader';
+import SourceInformation from './SourceInformation';
+import { uploadResourceFile } from '../api';
 
 const buildDefault = (suppliers) => ({
-  supplier_id: suppliers.length > 0 ? suppliers[0].id : '',
+  supplier_id: '',
   title: '',
   sku_code: `SP-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
   category_name: '通用',
   tiktok_category_id: '',
   source_url: '',
   main_image: '',
-  pricingMode: 'sku',            // sku = 变体一口价；tier = SPU 三档阶梯价(RMB)
-  price_tier_1: null,
-  price_tier_2: null,
-  price_tier_3: null,
-  supply_currency: 'MXN',
-  weight_g: 200,
-  package_length_cm: 20.0,
-  package_width_cm: 15.0,
-  package_height_cm: 3.0,
-  stock_quantity: 0
+  images: [],                    // 多张商品图（用于素材加工、三视图）
+  colorValues: '',               // 逗号分隔，如 "黑色,肤色"
+  sizeValues: '',                // 逗号分隔，如 "M,L,XL"
+  composition: '',               // 商品成分，如 "锦纶62%, 氨纶38%"
+  size_chart: null,              // {columns:[], rows:[]}
+  supply_price: '',              // 一口采购价
+  supply_currency: 'CNY',
+  _imgUrls: '',                  // 临时：图片URL文本框内容
+  weight_g: 0,                   // 0 = 未填写
+  package_length_cm: 0,
+  package_width_cm: 0,
+  package_height_cm: 0,
 });
 
-export default function ProductModal({ isOpen, onClose, onSubmit, suppliers, initialData }) {
+// 从 specs 数组解析出某属性的逗号分隔字符串
+const specValuesToStr = (specs, name) => {
+  const spec = (specs || []).find(s => s.name === name);
+  return (spec?.values || []).join(',');
+};
+
+// 把逗号分隔字符串转成数组（兼容中英文逗号、空格）
+const strToValues = (s) => s.split(/[,，\s]+/).map(v => v.trim()).filter(Boolean);
+
+export default function ProductModal({ isOpen, onClose, onSubmit, suppliers, initialData, presetSupplierId }) {
   const [formData, setFormData] = useState(buildDefault(suppliers));
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingImg, setUploadingImg] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     if (initialData) {
-      const hasTiers = initialData.price_tier_1 != null;
       setFormData({
         supplier_id: initialData.supplier_id || '',
         title: initialData.title || '',
@@ -38,58 +51,52 @@ export default function ProductModal({ isOpen, onClose, onSubmit, suppliers, ini
         tiktok_category_id: initialData.tiktok_category_id || '',
         source_url: initialData.source_url || '',
         main_image: initialData.main_image || '',
-        pricingMode: hasTiers ? 'tier' : 'sku',
-        price_tier_1: initialData.price_tier_1 ?? null,
-        price_tier_2: initialData.price_tier_2 ?? null,
-        price_tier_3: initialData.price_tier_3 ?? null,
-        supply_currency: initialData.supply_currency || 'MXN',
-        weight_g: initialData.weight_g ?? 200,
-        package_length_cm: initialData.package_length_cm ?? 20.0,
-        package_width_cm: initialData.package_width_cm ?? 15.0,
-        package_height_cm: initialData.package_height_cm ?? 3.0,
-        stock_quantity: initialData.stock_quantity ?? 0
+        images: initialData.images || [],
+        colorValues: specValuesToStr(initialData.specs, '颜色'),
+        sizeValues: specValuesToStr(initialData.specs, '尺码'),
+        composition: initialData.composition || '',
+        size_chart: initialData.size_chart || null,
+        supply_price: initialData.supply_price ?? '',
+        supply_currency: initialData.supply_currency || 'CNY',
+        weight_g: initialData.weight_g ?? 0,
+        package_length_cm: initialData.package_length_cm ?? 0,
+        package_width_cm: initialData.package_width_cm ?? 0,
+        package_height_cm: initialData.package_height_cm ?? 0,
       });
     } else {
-      setFormData(buildDefault(suppliers));
+      const def = buildDefault(suppliers);
+      // 从供货商卡片"添加商品"进入时，锁定该供货商
+      if (presetSupplierId) def.supplier_id = presetSupplierId;
+      setFormData(def);
     }
-  }, [initialData, suppliers, isOpen]);
+  }, [initialData, suppliers, isOpen, presetSupplierId]);
 
   if (!isOpen) return null;
 
-  const hasSkuVariants = !!(initialData?.skus && initialData.skus.length > 0);
-
-  // 动态测算体积重
-  const volCm3 = Math.round(formData.package_length_cm * formData.package_width_cm * formData.package_height_cm);
+  // 体积重测算（仅当尺寸和重量都已填写时）
+  const volCm3 = formData.package_length_cm && formData.package_width_cm && formData.package_height_cm
+    ? Math.round(formData.package_length_cm * formData.package_width_cm * formData.package_height_cm)
+    : 0;
   const volWeightG = Math.round((volCm3 / 6000) * 1000);
-  const isBulky = volWeightG > formData.weight_g;
-
-  // 阶梯折扣率
-  const p1 = Number(formData.price_tier_1) || 0;
-  const p2 = Number(formData.price_tier_2) || 0;
-  const p3 = Number(formData.price_tier_3) || 0;
-  const discount2 = p1 > 0 ? Math.round(((p1 - p2) / p1) * 100) : 0;
-  const discount3 = p1 > 0 ? Math.round(((p1 - p3) / p1) * 100) : 0;
-
-  const numOrNull = (v) => (v === '' || v === null ? null : Number(v));
+  const isBulky = formData.weight_g > 0 && volWeightG > formData.weight_g;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = { ...formData };
-    if (formData.pricingMode === 'sku') {
-      payload.price_tier_1 = null;
-      payload.price_tier_2 = null;
-      payload.price_tier_3 = null;
-    } else {
-      if (p1 <= 0 || p2 <= 0 || p3 <= 0) {
-        alert('阶梯价模式下三档价格都必须填写，或切换为「SKU 一口价」模式');
-        return;
-      }
-      if (p1 < p2 || p2 < p3) {
-        alert('阶梯价格逻辑错误：1件价 必须 ≥ 2件价 必须 ≥ 3件价！');
-        return;
-      }
-    }
-    delete payload.pricingMode;
+    const specs = [];
+    const colors = strToValues(formData.colorValues);
+    const sizes = strToValues(formData.sizeValues);
+    if (colors.length) specs.push({ name: '颜色', values: colors });
+    if (sizes.length) specs.push({ name: '尺码', values: sizes });
+
+    const payload = { ...formData, specs };
+    delete payload.colorValues;
+    delete payload.sizeValues;
+    delete payload._imgUrls;
+    // 主图取第一张商品图
+    payload.main_image = (payload.images && payload.images[0]) || payload.main_image || '';
+    // supply_price 空串转 null
+    if (payload.supply_price === '' || payload.supply_price === null) payload.supply_price = null;
+
     setSubmitting(true);
     try {
       await onSubmit(payload);
@@ -99,6 +106,48 @@ export default function ProductModal({ isOpen, onClose, onSubmit, suppliers, ini
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // 上传商品图片
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingImg(true);
+    try {
+      const uploaded = [];
+      for (const f of files) {
+        const res = await uploadResourceFile(f, 'product-images');
+        if (res?.url) uploaded.push(res.url);
+      }
+      if (uploaded.length) {
+        setFormData(d => ({ ...d, images: [...(d.images || []), ...uploaded] }));
+      }
+    } catch (err) {
+      alert('图片上传失败: ' + (err.message || err));
+    } finally {
+      setUploadingImg(false);
+    }
+  };
+
+  const removeImage = (idx) => {
+    setFormData(d => ({ ...d, images: (d.images || []).filter((_, i) => i !== idx) }));
+  };
+
+  // 尺码表编辑
+  const initSizeChart = () => ({ columns: ['尺码', '上胸围', '下胸围'], rows: [['', '', '']] });
+  const ensureSizeChart = () => formData.size_chart || initSizeChart();
+  const setChartCell = (rowIdx, colIdx, val) => {
+    const chart = ensureSizeChart();
+    const rows = chart.rows.map((r, ri) => ri === rowIdx ? r.map((c, ci) => ci === colIdx ? val : c) : r);
+    setFormData(d => ({ ...d, size_chart: { ...chart, rows } }));
+  };
+  const addChartRow = () => {
+    const chart = ensureSizeChart();
+    setFormData(d => ({ ...d, size_chart: { ...chart, rows: [...chart.rows, new Array(chart.columns.length).fill('')] } }));
+  };
+  const removeChartRow = (idx) => {
+    const chart = ensureSizeChart();
+    setFormData(d => ({ ...d, size_chart: { ...chart, rows: chart.rows.filter((_, i) => i !== idx) } }));
   };
 
   const inputCls = 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500';
@@ -112,13 +161,15 @@ export default function ProductModal({ isOpen, onClose, onSubmit, suppliers, ini
               <Package className="w-4 h-4" />
             </div>
             <h3 className="font-bold text-slate-900 text-sm">
-              {initialData ? '编辑货源 SPU 信息' : '录入新货源 SPU'}
+              {initialData ? '编辑货源 SPU' : '录入新货源 SPU'}
             </h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        <SourceInformation product={initialData} />
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {/* 基本信息 */}
@@ -128,7 +179,7 @@ export default function ProductModal({ isOpen, onClose, onSubmit, suppliers, ini
               <input
                 type="text"
                 required
-                placeholder="例如: 针织连体衣（款族 SPU，颜色尺码在 SKU 矩阵维护）"
+                placeholder="例如: 针织连体衣"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className={inputCls}
@@ -149,11 +200,14 @@ export default function ProductModal({ isOpen, onClose, onSubmit, suppliers, ini
             <div>
               <label className="block text-slate-700 font-semibold mb-1">关联供货商</label>
               <select
+                required={!initialData}
+                disabled={!initialData && !!presetSupplierId}
+                aria-label="关联供应商"
                 value={formData.supplier_id}
                 onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
                 className={`${inputCls} bg-white`}
               >
-                <option value="">未关联</option>
+                <option value="">请选择供应商</option>
                 {suppliers.map(s => (
                   <option key={s.id} value={s.id}>{s.name} ({s.shipping_sla_hours}h发货)</option>
                 ))}
@@ -178,121 +232,181 @@ export default function ProductModal({ isOpen, onClose, onSubmit, suppliers, ini
 
             <div>
               <label className="block text-slate-700 font-semibold mb-1">
-                现货可用库存
-                {hasSkuVariants && (
-                  <span className="ml-1.5 text-[10px] font-normal text-amber-600">已由 SKU 库存自动聚合，只读</span>
-                )}
+                颜色
+                <span className="ml-1.5 text-[10px] font-normal text-slate-400">逗号分隔</span>
               </label>
               <input
-                type="number"
-                disabled={hasSkuVariants}
-                value={formData.stock_quantity}
-                onChange={(e) => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) || 0 })}
-                className={`${inputCls} ${hasSkuVariants ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''}`}
+                type="text"
+                placeholder="兰,咖,黑,灰绿"
+                value={formData.colorValues}
+                onChange={(e) => setFormData({ ...formData, colorValues: e.target.value })}
+                className={inputCls}
               />
             </div>
 
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">供货币种</label>
+              <label className="block text-slate-700 font-semibold mb-1">
+                尺码
+                <span className="ml-1.5 text-[10px] font-normal text-slate-400">逗号分隔</span>
+              </label>
               <input
                 type="text"
-                value={formData.supply_currency || ''}
-                onChange={(e) => setFormData({ ...formData, supply_currency: e.target.value.toUpperCase() })}
-                className={`${inputCls} font-mono`}
-                maxLength={5}
-                placeholder="MXN / CNY"
+                placeholder="S,M,L,XL,2XL,3XL"
+                value={formData.sizeValues}
+                onChange={(e) => setFormData({ ...formData, sizeValues: e.target.value })}
+                className={inputCls}
               />
             </div>
-          </div>
 
-          {/* 定价模式切换 */}
-          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, pricingMode: 'sku' })}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition ${
-                  formData.pricingMode === 'sku'
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
-                }`}
-              >
-                SKU 一口价模式
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, pricingMode: 'tier' })}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition ${
-                  formData.pricingMode === 'tier'
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
-                }`}
-              >
-                SPU 三档阶梯价 (RMB)
-              </button>
+            <div className="sm:col-span-2">
+              <label className="block text-slate-700 font-semibold mb-1">
+                商品图片
+                <span className="ml-1.5 text-[10px] font-normal text-slate-400">上传多张，第一张为主图，用于素材加工/三视图</span>
+              </label>
+              <div className="border-2 border-dashed border-slate-200 rounded-lg p-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="prod-imgs"
+                />
+                <label htmlFor="prod-imgs" className="flex items-center justify-center gap-1.5 text-indigo-600 hover:text-indigo-700 cursor-pointer py-2 text-xs font-medium">
+                  <ImagePlus className="w-4 h-4" />
+                  {uploadingImg ? '上传中…' : '点击上传图片'}
+                </label>
+                {formData.images?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.images.map((img, idx) => (
+                      <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 group">
+                        <img src={img} className="w-full h-full object-cover" alt="" />
+                        {idx === 0 && <span className="absolute top-0 left-0 bg-indigo-600 text-white text-[9px] px-1 rounded-br">主图</span>}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-0 right-0 bg-rose-500 text-white w-4 h-4 rounded-bl hidden group-hover:flex items-center justify-center"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input
+                  type="text"
+                  placeholder="或粘贴图片 URL（换行分隔多张）"
+                  value={formData._imgUrls || ''}
+                  onChange={(e) => {
+                    const urls = e.target.value.split('\n').map(s => s.trim()).filter(Boolean);
+                    setFormData(d => ({ ...d, _imgUrls: e.target.value, images: urls }));
+                  }}
+                  className="mt-2 w-full px-2 py-1 text-[11px] border border-slate-200 rounded font-mono"
+                />
+              </div>
             </div>
 
-            {formData.pricingMode === 'sku' ? (
-              <div className="flex items-start gap-2 p-3 bg-white rounded-lg border border-slate-200 text-[11px] text-slate-600 leading-relaxed">
-                <Boxes className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
-                <div>
-                  当前为一口价模式：SPU 不维护价格，每个颜色/尺码 SKU 的供货价（{formData.supply_currency || 'MXN'}）在
-                  <strong className="text-slate-800"> 货源库 SKU 矩阵 </strong>
-                  中单独维护。供应商 OMS 导入的商品默认使用此模式。
-                </div>
+            <div>
+              <label className="block text-slate-700 font-semibold mb-1">采购价</label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="如 45"
+                  value={formData.supply_price ?? ''}
+                  onChange={(e) => setFormData({ ...formData, supply_price: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                  className={`${inputCls} flex-1`}
+                />
+                <select
+                  value={formData.supply_currency}
+                  onChange={(e) => setFormData({ ...formData, supply_currency: e.target.value })}
+                  className={`${inputCls} bg-white w-20`}
+                >
+                  <option value="CNY">¥</option>
+                  <option value="MXN">$</option>
+                  <option value="USD">$</option>
+                </select>
               </div>
-            ) : (
-              <div className="space-y-2.5">
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-slate-600 font-medium mb-1">1件单价 (基础成本)</label>
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-2 text-slate-400">¥</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.price_tier_1 ?? ''}
-                        onChange={(e) => setFormData({ ...formData, price_tier_1: numOrNull(e.target.value) })}
-                        className="w-full pl-6 pr-2 py-1.5 border border-slate-200 rounded-lg font-bold text-slate-900 bg-white"
-                      />
-                    </div>
-                  </div>
+            </div>
 
-                  <div>
-                    <label className="block text-slate-600 font-medium mb-1">
-                      2件单价 {discount2 > 0 && <span className="text-indigo-600 font-bold">(-{discount2}%)</span>}
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-2 text-slate-400">¥</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.price_tier_2 ?? ''}
-                        onChange={(e) => setFormData({ ...formData, price_tier_2: numOrNull(e.target.value) })}
-                        className="w-full pl-6 pr-2 py-1.5 border border-slate-200 rounded-lg font-bold text-indigo-700 bg-white"
-                      />
-                    </div>
-                  </div>
+            <div>
+              <label className="block text-slate-700 font-semibold mb-1">商品成分</label>
+              <input
+                type="text"
+                placeholder="如 锦纶62%, 氨纶38%"
+                value={formData.composition || ''}
+                onChange={(e) => setFormData({ ...formData, composition: e.target.value })}
+                className={inputCls}
+              />
+            </div>
 
-                  <div>
-                    <label className="block text-slate-600 font-medium mb-1">
-                      3件单价 {discount3 > 0 && <span className="text-emerald-600 font-bold">(-{discount3}%)</span>}
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-2 text-slate-400">¥</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.price_tier_3 ?? ''}
-                        onChange={(e) => setFormData({ ...formData, price_tier_3: numOrNull(e.target.value) })}
-                        className="w-full pl-6 pr-2 py-1.5 border border-slate-200 rounded-lg font-bold text-emerald-700 bg-white"
-                      />
-                    </div>
-                  </div>
+            <div className="sm:col-span-2">
+              <label className="block text-slate-700 font-semibold mb-1">
+                尺码表
+                <span className="ml-1.5 text-[10px] font-normal text-slate-400">记录各尺码的详细尺寸数据</span>
+              </label>
+              {formData.size_chart ? (
+                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-[11px]">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        {formData.size_chart.columns.map((col, ci) => (
+                          <th key={ci} className="px-2 py-1 text-left text-slate-600 font-medium border-b border-slate-200">{col}</th>
+                        ))}
+                        <th className="w-8 border-b border-slate-200"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData.size_chart.rows.map((row, ri) => (
+                        <tr key={ri}>
+                          {row.map((cell, ci) => (
+                            <td key={ci} className="border-b border-slate-100 p-0">
+                              <input
+                                type="text"
+                                value={cell}
+                                onChange={(e) => setChartCell(ri, ci, e.target.value)}
+                                className="w-full px-2 py-1 bg-transparent focus:bg-indigo-50 outline-none"
+                              />
+                            </td>
+                          ))}
+                          <td className="text-center">
+                            <button type="button" onClick={() => removeChartRow(ri)} className="text-slate-300 hover:text-rose-500">
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <button
+                    type="button"
+                    onClick={addChartRow}
+                    className="w-full py-1.5 text-indigo-600 hover:bg-indigo-50 text-[11px] flex items-center justify-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> 增加一行
+                  </button>
                 </div>
-                <p className="text-[10px] text-slate-400">三档必须同填且满足 1件价 ≥ 2件价 ≥ 3件价，用于 1688 类 RMB 阶梯成本场景。</p>
-              </div>
-            )}
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setFormData(d => ({ ...d, size_chart: initSizeChart() }))}
+                  className="w-full py-2 border border-dashed border-slate-300 rounded-lg text-slate-500 hover:text-indigo-600 hover:border-indigo-300 text-xs"
+                >
+                  + 添加尺码表
+                </button>
+              )}
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-slate-700 font-semibold mb-1">采购原链接</label>
+              <input
+                type="text"
+                placeholder="1688 / 供应商商品页链接"
+                value={formData.source_url}
+                onChange={(e) => setFormData({ ...formData, source_url: e.target.value })}
+                className={inputCls}
+              />
+            </div>
           </div>
 
           {/* 物理属性与体积重测算 */}

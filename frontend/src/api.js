@@ -1,5 +1,6 @@
+// 所有环境使用同源接口；开发模式由 Vite/Nginx 代理到指定后端。
 const API_BASE = '/api';
-const AUTH_BASE = ''; // fastapi-users 路由在 /auth 而非 /api/auth
+const AUTH_BASE = '';
 
 export function getToken() {
   return localStorage.getItem('shopdesk_token');
@@ -154,10 +155,19 @@ export const getSourceProducts = (params = {}) => {
   const query = new URLSearchParams(params).toString();
   return request(`/source-products${query ? `?${query}` : ''}`);
 };
+export const updateSalesQueue = (ids, operation = 'add') => request(`/source-products/sales-queue?operation=${operation}`, { method: 'POST', body: JSON.stringify(ids) });
+export const getSourceProductPage = (params = {}) => request(`/source-products/page?${new URLSearchParams(params)}`);
 export const getSourceProduct = (id) => request(`/source-products/${id}`);
 export const createSourceProduct = (data) => request('/source-products', { method: 'POST', body: JSON.stringify(data) });
 export const updateSourceProduct = (id, data) => request(`/source-products/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteSourceProduct = (id) => request(`/source-products/${id}`, { method: 'DELETE' });
+
+// 预销售清单（账号级选品结果）
+export const getPresalePicks = () => request('/presale-picks');
+export const addPresalePick = (productId) =>
+  request(`/presale-picks/${productId}`, { method: 'POST' });
+export const removePresalePick = (productId) =>
+  request(`/presale-picks/${productId}`, { method: 'DELETE' });
 
 // 货源 SKU 变体（颜色×尺码矩阵的单元格）
 export const getProductSkus = (productId) => request(`/source-products/${productId}/skus`);
@@ -196,20 +206,61 @@ export const getShopOrders = (shopId, params = {}) => {
   return request(`/tiktok/shops/${shopId}/orders${query ? `?${query}` : ''}`);
 };
 
-// 店铺资料库：平台账号
-export const getPlatformAccounts = () => request('/resources/accounts');
-export const createPlatformAccount = (data) => request('/resources/accounts', { method: 'POST', body: JSON.stringify(data) });
+// 店铺资料库：平台账号（传 shop_id 时按店铺过滤；运营导航不传则汇总当前账号全部店铺）
+export const getPlatformAccounts = (shopId) =>
+  request(`/resources/accounts${shopId ? `?shop_id=${encodeURIComponent(shopId)}` : ''}`);
+export const createPlatformAccount = (shopId, data) =>
+  request(`/resources/accounts?shop_id=${encodeURIComponent(shopId)}`, { method: 'POST', body: JSON.stringify(data) });
 export const updatePlatformAccount = (id, data) => request(`/resources/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deletePlatformAccount = (id) => request(`/resources/accounts/${id}`, { method: 'DELETE' });
 export const revealAccountField = (id, field) => request(`/resources/accounts/${id}/reveal`, { method: 'POST', body: JSON.stringify({ field }) });
 
-// 店铺资料库：证件/Logo 文件
-export const getResourceFiles = () => request('/resources/files');
-export const fileDownloadUrl = (category, name) =>
-  `${API_BASE}/resources/files/download?category=${encodeURIComponent(category)}&name=${encodeURIComponent(name)}`;
+// 店铺资料库：证件/Logo 文件（含私有图片预览，统一携带登录凭证）
+export const getResourceFiles = (shopId) =>
+  request(`/resources/files?shop_id=${encodeURIComponent(shopId)}`);
+export const fileDownloadUrl = (category, name, shopId) =>
+  `${API_BASE}/resources/files/download?category=${encodeURIComponent(category)}&name=${encodeURIComponent(name)}&shop_id=${encodeURIComponent(shopId)}`;
+export async function fetchResourceFile(category, name, shopId) {
+  const token = getToken();
+  const response = await fetch(fileDownloadUrl(category, name, shopId), {
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+  });
+  if (!response.ok) throw new Error('文件读取失败');
+  return response.blob();
+}
 
+// 注册人资料（按店铺隔离）
+export const getRegistrant = (shopId) =>
+  request(`/registrant?shop_id=${encodeURIComponent(shopId)}`);
+export const updateRegistrant = (shopId, data) =>
+  request(`/registrant?shop_id=${encodeURIComponent(shopId)}`, { method: 'PUT', body: JSON.stringify(data) });
+
+// 公开文件上传（商品图片等）
+export async function uploadResourceFile(file, category = 'product-images') {
+  const token = getToken();
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${API_BASE}/resources/upload?category=${encodeURIComponent(category)}`, {
+    method: 'POST',
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || '上传失败');
+  return data;
+}
+
+// 首页履约监控（账号隔离的本地平台快照）
 export const getOrderMonitor = (params = {}) => {
   const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined));
   return request(`/tiktok/order-monitor?${query}`);
 };
+
 export const getReturnMonitor = (shopId = 'ALL') => request(`/tiktok/return-monitor?shop_id=${encodeURIComponent(shopId)}`);
+
+// Account-shared product function vocabulary.
+export const getProductFunctions = () => request('/product-functions');
+export const importProductFunctionRun = run => request('/product-functions/runs', { method: 'POST', body: JSON.stringify(run) });
+
+export const getCreationConfig = id => request(`/product-creation-configs/${encodeURIComponent(id)}`);
+export const saveCreationConfig = (id, config, revision) => request(`/product-creation-configs/${encodeURIComponent(id)}`, {method:'PUT', body:JSON.stringify({config, expected_revision:revision})});

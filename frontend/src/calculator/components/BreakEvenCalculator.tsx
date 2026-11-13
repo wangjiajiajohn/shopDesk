@@ -14,11 +14,11 @@ import CalculatorField, { type AmountCurrency } from './CalculatorField';
 import CalculatorDecisionResults from './CalculatorDecisionResults';
 import CalculatorCompactRate from './CalculatorCompactRate';
 
-const initialCurrencies: Record<CalculatorMoneyField, AmountCurrency> = { purchase: 'MXN', agency: 'MXN', other: 'MXN', shipping: 'MXN', platformShipping: 'MXN', buyerShipping: 'MXN', fixed: 'MXN', sale: 'MXN', discount: 'MXN' };
+const initialCurrencies: Record<CalculatorMoneyField, AmountCurrency> = { purchase: 'MXN', agency: 'CNY', other: 'MXN', shipping: 'MXN', platformShipping: 'MXN', buyerShipping: 'MXN', fixed: 'MXN', sale: 'MXN', discount: 'MXN' };
 export default function BreakEvenCalculator() {
   const mobile = useCalculatorMobile();
   const [costSettingsOpen, setCostSettingsOpen] = useState(false);
-  const [values, setValues] = useState<CalculatorValues>({ ...calculatorDefaults, agency: '0' });
+  const [values, setValues] = useState<CalculatorValues>({ ...calculatorDefaults, agency: '5' });
   const [currencies, setCurrencies] = useState(initialCurrencies);
   const [commissionSource, setCommissionSource] = useState<'creator' | 'external'>('creator');
   const promotions: CalculatorPromotions = { advertising: true, creator: commissionSource === 'creator', external: commissionSource === 'external' };
@@ -78,7 +78,7 @@ export default function BreakEvenCalculator() {
       <section className="calculator-panel" aria-labelledby="calc-cost-heading"><h2 id="calc-cost-heading"><span className="calculator-step">1</span>成本</h2>
         <div className="calculator-fields">{amountInput('purchase', '采购成本')}</div>
         <details className="calculator-more" open={Object.keys(errors).some(key => ['agency','other','commission','sfp','fixed','fxRiskRate','remittanceRate','returnRate'].includes(key)) || undefined}><summary>更多成本项</summary>
-          <div className="calculator-fields">{amountInput('agency', '代采费')}{amountInput('other', '其他成本')}{ratioInput('commission', '平台佣金')}{ratioInput('sfp', 'SFP 服务费', '每件封顶40 MXN')}{amountInput('fixed', '每件销售费')}{ratioInput('fxRiskRate', '汇率压力幅度', '仅用于压力情景，不扣基础利润、不抬高定价')}{ratioInput('remittanceRate', '回款手续费率')}{ratioInput('returnRate', '退款不退货率')}</div>
+          <div className="calculator-fields"><div className="calculator-fixed-fee"><span className="calculator-fixed-label">代采费</span><span className="calculator-fixed-value">¥5 / 件（固定）</span></div>{amountInput('other', '其他成本')}{ratioInput('commission', '平台佣金')}{ratioInput('sfp', 'SFP 服务费', '每件封顶40 MXN')}{amountInput('fixed', '每件销售费')}{ratioInput('fxRiskRate', '汇率压力幅度', '仅用于压力情景，不扣基础利润、不抬高定价')}{ratioInput('remittanceRate', '回款手续费率')}{ratioInput('returnRate', '退款不退货率')}</div>
           <p className="calculator-note">ISR、IVA自动估算；汇率压力仅作情景对照，其余费用收起后仍计入。</p>
         </details>
       </section>

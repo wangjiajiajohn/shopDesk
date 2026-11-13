@@ -1,9 +1,11 @@
 """店铺资料库：平台账号（加密）+ 证件/Logo 文件（受控访问）。"""
 import mimetypes
+import os
+import uuid
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +21,7 @@ from ..schemas import (
 )
 from ..security import decrypt_token, encrypt_token, mask_token
 from ..users.auth import current_user
+from .shops import get_owned_shop
 
 router = APIRouter(prefix="/api/resources", tags=["店铺资料库"])
 
@@ -29,18 +32,18 @@ _SECRET_FIELDS = {
     "pin": "pin_encrypted",
 }
 
-# 文件下载白名单：category -> 根目录（只允许这两个根下的文件）
-_FILE_ROOTS = {
-    "registrant": settings.PRIVATE_FILES_DIR / "registrant",
-    "company": settings.PRIVATE_FILES_DIR / "company",
-    "shop-logos": settings.PUBLIC_RESOURCES_DIR / "shop-logos",
-}
+_FILE_CATEGORIES = ("registrant", "company", "shop-logos")
+
+
+def _file_root(shop_id: str, category: str) -> Path:
+    return settings.PRIVATE_FILES_DIR / "shops" / shop_id / category
 
 
 def _account_out(a: PlatformAccount) -> PlatformAccountResponse:
     """构造掩码出参，绝不带出密文列。"""
     return PlatformAccountResponse(
         id=a.id,
+        shop_id=a.shop_id,
         platform=a.platform,
         purpose=a.purpose,
         account=a.account,
@@ -62,15 +65,16 @@ def _account_out(a: PlatformAccount) -> PlatformAccountResponse:
 # ----------------- 平台账号 -----------------
 @router.get("/accounts", response_model=List[PlatformAccountResponse])
 async def list_accounts(
+    shop_id: str = None,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_user),
 ):
+    query = select(PlatformAccount).filter(PlatformAccount.user_id == str(user.id))
+    if shop_id:
+        shop = await get_owned_shop(db, user, shop_id)
+        query = query.filter(PlatformAccount.shop_id == shop.id)
     result = await db.execute(
-        select(PlatformAccount)
-        .filter(PlatformAccount.user_id == str(user.id))
-        .order_by(
-            PlatformAccount.sort_order.asc(), PlatformAccount.created_at.asc()
-        )
+        query.order_by(PlatformAccount.sort_order.asc(), PlatformAccount.created_at.asc())
     )
     return [_account_out(a) for a in result.scalars().all()]
 
@@ -78,11 +82,13 @@ async def list_accounts(
 @router.post("/accounts", response_model=PlatformAccountResponse)
 async def create_account(
     body: PlatformAccountCreate,
+    shop_id: str = None,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_user),
 ):
+    shop = await get_owned_shop(db, user, shop_id)
     data = body.model_dump(exclude={"password", "secret", "pin"})
-    account = PlatformAccount(**data, user_id=str(user.id))
+    account = PlatformAccount(**data, user_id=str(user.id), shop_id=shop.id)
     account.password_encrypted = encrypt_token(body.password or "")
     account.secret_encrypted = encrypt_token(body.secret or "")
     account.pin_encrypted = encrypt_token(body.pin or "")
@@ -164,10 +170,16 @@ _FILE_LABELS = {
 
 
 @router.get("/files")
-async def list_files():
-    """列出资料库文件（不含 website-logos，图标由前端静态路径直接访问）。"""
+async def list_files(
+    shop_id: str = None,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """列出指定店铺的资料库文件（不含 website-logos 公共图标）。"""
+    shop = await get_owned_shop(db, user, shop_id)
     groups = []
-    for category, root in _FILE_ROOTS.items():
+    for category in _FILE_CATEGORIES:
+        root = _file_root(shop.id, category)
         files = []
         if root.exists():
             for p in sorted(root.iterdir()):
@@ -177,18 +189,25 @@ async def list_files():
                     "name": p.name,
                     "size": p.stat().st_size,
                     "mime": mimetypes.guess_type(p.name)[0] or "application/octet-stream",
-                    "download_url": f"/api/resources/files/download?category={category}&name={p.name}",
+                    "download_url": f"/api/resources/files/download?category={category}&name={p.name}&shop_id={shop.id}",
                 })
         groups.append({"category": category, "label": _FILE_LABELS[category], "files": files})
     return groups
 
 
 @router.get("/files/download")
-async def download_file(category: str, name: str):
-    """受控下载：白名单目录 + 解析后路径校验，阻断 ../ 路径穿越。"""
-    root = _FILE_ROOTS.get(category)
-    if root is None:
+async def download_file(
+    category: str,
+    name: str,
+    shop_id: str = None,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """按店铺鉴权下载，白名单目录 + 路径校验阻断越权与路径穿越。"""
+    if category not in _FILE_CATEGORIES:
         raise HTTPException(status_code=400, detail="非法文件分类")
+    shop = await get_owned_shop(db, user, shop_id)
+    root = _file_root(shop.id, category)
 
     # 只允许纯文件名，拒绝任何带路径分隔符的输入
     if "/" in name or "\\" in name or name in ("", ".", ".."):
@@ -204,3 +223,34 @@ async def download_file(category: str, name: str):
         media_type=mimetypes.guess_type(target.name)[0] or "application/octet-stream",
         filename=target.name,
     )
+
+
+# 允许上传的文件扩展名与对应 MIME
+_ALLOWED_UPLOAD_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4"}
+
+
+@router.post("/upload")
+async def upload_public_file(
+    category: str = "product-images",
+    file: UploadFile = File(...),
+    user: User = Depends(current_user),
+):
+    """公开文件上传（商品图片等）。返回可直接访问的 /uploads/... URL。"""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="文件名缺失")
+    ext = Path(file.filename).suffix.lower()
+    if ext not in _ALLOWED_UPLOAD_EXTS:
+        raise HTTPException(status_code=400, detail=f"不支持的文件类型: {ext}")
+
+    # 按 category 分目录
+    safe_category = "".join(c for c in category if c.isalnum() or c == "-") or "misc"
+    target_dir = settings.PUBLIC_UPLOAD_DIR / safe_category
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    target = target_dir / filename
+    content = await file.read()
+    target.write_bytes(content)
+
+    url = f"/uploads/{safe_category}/{filename}"
+    return {"url": url, "name": file.filename, "size": len(content)}

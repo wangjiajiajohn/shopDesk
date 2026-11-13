@@ -1,21 +1,21 @@
-// 参考商品数据集：静态 JSON + 图片，来源为墨西哥 TikTok 选品采集快照
+// 参考商品数据集：来源为墨西哥 TikTok 选品采集快照，数据按账号隔离存于后端
+import { request } from './api';
+import { parseMaterialNumberQuery } from './materialNumbers';
+export { materialNumberLabel } from './materialNumbers';
+
+// 图片仍走静态文件（素材共享），路径必须是 images/ 或 previews/ 下的哈希文件名
 export const REFERENCE_ROOT = 'product-references/mx-20261107/';
 
-// 拼接参考图片地址；路径必须是 images/ 或 previews/ 下的哈希文件名，防止越权读取
+// 拼接参考图片地址
 export function referenceAsset(path) {
   if (!/^(images|previews)\/[a-f0-9]{64}\.(webp|png|jpe?g|gif)$/.test(path)) return '';
   return `${import.meta.env.BASE_URL}${REFERENCE_ROOT}${path}`;
 }
 
-async function readJson(path, signal) {
-  const res = await fetch(`${import.meta.env.BASE_URL}${REFERENCE_ROOT}${path}`, { signal, credentials: 'same-origin' });
-  if (!res.ok) throw new Error(`参考商品资料读取失败（${res.status}）`);
-  return res.json();
-}
-
+// 从后端 API 获取参考商品索引（按当前登录账号隔离）
 export async function loadReferenceIndex(signal) {
-  const index = await readJson('index.json', signal);
-  if (index.schemaVersion !== 1 || !Array.isArray(index.items) || !Array.isArray(index.categories)) {
+  const index = await request('/reference-products/index', { signal });
+  if (!index || !Array.isArray(index.items) || !Array.isArray(index.categories)) {
     throw new Error('参考商品目录格式不正确');
   }
   return index;
@@ -36,6 +36,7 @@ function mergePlacements(primary, secondary) {
 // 统一成一品一条：7 天与 28 天排名合并、商品按 ID 去重、两个周期销量并列保留
 export function selectReferencePage(index, filters) {
   const query = (filters.query || '').trim().normalize('NFKC').toLowerCase();
+  const numberQuery = parseMaterialNumberQuery(query);
   const seenIds = new Set();
   const unified = [];
 
@@ -72,7 +73,7 @@ export function selectReferencePage(index, filters) {
       const inCategory = catList.length === 0
         || item.displayPlacements.some((p) => catList.includes(p.category))
         || catList.includes(item.archiveCategory);
-      const inQuery = !query || (item.searchText || '').normalize('NFKC').toLowerCase().includes(query);
+      const inQuery = !query || (numberQuery !== null ? item.materialNumber === numberQuery : (item.searchText || '').normalize('NFKC').toLowerCase().includes(query));
       return inCategory && inQuery;
     })
     .sort((a, b) => {
@@ -104,7 +105,7 @@ export async function loadReferencePage(items, signal) {
       if (!/^\d{19}$/.test(id)) throw new Error('参考商品编号无效');
       let product = detailCache.get(id);
       if (!product) {
-        product = await readJson(`products/${id}.json`, signal);
+        product = await request(`/reference-products/${id}`, { signal });
         if (product.id !== id || typeof product.title !== 'string' || !Array.isArray(product.images)) {
           throw new Error('参考商品资料不完整');
         }
@@ -112,6 +113,7 @@ export async function loadReferencePage(items, signal) {
       }
       results[position] = {
         ...product,
+        materialNumber: item.materialNumber ?? product.materialNumber,
         sales7: item.sales7 ?? product.sales7 ?? null,
         sales28: item.sales28 ?? null,
         sales7Text: item.sales7Text,

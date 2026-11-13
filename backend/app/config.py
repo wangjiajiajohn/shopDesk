@@ -50,6 +50,7 @@ class Settings:
     PUBLIC_RESOURCES_DIR: Path = (
         BACKEND_DIR.parent / "frontend" / "public" / "resources"  # logo/图标（静态公开）
     )
+    PUBLIC_UPLOAD_DIR: Path = BACKEND_DIR / "data" / "uploads"    # 商品图片等公开上传文件
 
     # OpenAI 兼容大模型（OpenAI 官方 / APIMart 等网关通用，改 BASE_URL 即可切换）
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")

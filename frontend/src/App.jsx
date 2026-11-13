@@ -5,12 +5,16 @@ import HomeView from './views/HomeView';
 const ApiCatalogView = React.lazy(() => import('./views/ApiCatalogView'));
 import ShopsView from './views/ShopsView';
 import SourcingView from './views/SourcingView';
+import ProductFunctionsView from './views/ProductFunctionsView';
+import SkillsView from './views/SkillsView';
+import ProductVideoMaterialsView from './views/ProductVideoMaterialsView';
+import ProductMaterialsView from './views/ProductMaterialsView';
+import ProductCreationQueueView from './views/ProductCreationQueueView';
 import CalculatorView from './calculator/CalculatorView';
 import ResourcesView from './views/ResourcesView';
 import NavigationView from './views/NavigationView';
 import TikTokProductsView from './views/TikTokProductsView';
 import OrdersView from './views/OrdersView';
-import ReferenceProductsView from './views/ReferenceProductsView';
 import KbLayout from './knowledge/KbLayout';
 import KnowledgeBase from './knowledge/components/KnowledgeBase';
 import ConversionFunnel from './knowledge/components/ConversionFunnel';
@@ -25,9 +29,24 @@ import SupplierModal from './components/SupplierModal';
 import QuickDistributeModal from './components/QuickDistributeModal';
 import * as api from './api';
 import AuthView from './views/AuthView';
+import { tabFromPath, pathFromTab } from './appRoutes';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState('home');
+  const [currentTab, setCurrentTabState] = useState(() => tabFromPath(window.location.pathname));
+  const setCurrentTab = tab => {
+    const path = pathFromTab(tab);
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+    setCurrentTabState(tabFromPath(path));
+  };
+  useEffect(() => {
+    const onPopState = () => setCurrentTabState(tabFromPath(window.location.pathname));
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+  useEffect(() => {
+    const path = pathFromTab(currentTab);
+    if (window.location.pathname !== path) window.history.replaceState(null, '', path + window.location.search + window.location.hash);
+  }, [currentTab]);
   const [currentShopId, setCurrentShopId] = useState('');
   const [orderContext, setOrderContext] = useState(null);
 
@@ -82,6 +101,7 @@ export default function App() {
   const [authConfig, setAuthConfig] = useState({ is_configured: false });
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [presetSupplierId, setPresetSupplierId] = useState(null);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [distributeProduct, setDistributeProduct] = useState(null);
 
@@ -99,18 +119,16 @@ export default function App() {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [mkts, shps, supps, prods, creds, cfg] = await Promise.all([
+      const [mkts, shps, supps, creds, cfg] = await Promise.all([
         api.getMarkets(),
         api.getShops(),
         api.getSuppliers(),
-        api.getSourceProducts(),
         api.getCredentials().catch(() => []),
         api.getAuthConfigStatus().catch(() => ({ is_configured: false }))
       ]);
       setMarkets(mkts);
       setShops(shps);
       setSuppliers(supps);
-      setProducts(prods);
       setCredentials(creds);
       setAuthConfig(cfg);
     } catch (err) {
@@ -217,7 +235,8 @@ export default function App() {
   const handleAddSupplier = async (suppData) => {
     const created = await api.createSupplier(suppData);
     setSuppliers(prev => [created, ...prev]);
-    showToast(`已添加供货商: ${created.name}`);
+    showToast(`已添加供应商: ${created.name}`);
+    return created;
   };
 
   const handleDeleteSupplier = async (suppId, name) => {
@@ -261,10 +280,10 @@ export default function App() {
         />
 
         {/* 右侧视口：唯一纵向滚动容器 */}
-        <main className="flex-1 min-w-0 overflow-y-auto p-6">
-          {loading || (shops.length > 0 && !currentShopId) ? (
+        <main className={`flex-1 min-w-0 min-h-0 p-6 ${['sourcing', 'product-creation-queue', 'product-video-materials', 'product-functions', 'skills'].includes(currentTab) ? 'overflow-hidden' : currentTab === 'calculator' ? 'overflow-y-auto md:overflow-hidden' : 'overflow-y-auto'}`}>
+          {(loading || (shops.length > 0 && !currentShopId)) && !['sourcing', 'product-creation-queue', 'product-materials', 'product-video-materials', 'product-functions', 'skills', 'calculator', 'navigation', 'api-catalog'].includes(currentTab) && !currentTab.startsWith('kb-') ? (
             <div className="flex items-center justify-center h-64 text-slate-400 text-xs">
-              正在同步店铺与货源数据...
+              正在加载工作台数据...
             </div>
           ) : (
             <>
@@ -301,21 +320,47 @@ export default function App() {
                 <SourcingView
                   products={products}
                   suppliers={suppliers}
-                  onOpenAddProduct={() => {
+                  onOpenAddProduct={(supplierId) => {
                     setEditingProduct(null);
-                    setIsProductModalOpen(true);
+                    setPresetSupplierId(supplierId || null);
+                    if (supplierId) setIsProductModalOpen(true);
+                    else setIsSupplierModalOpen(true);
                   }}
-                  onEditProduct={(p) => {
-                    setEditingProduct(p);
+                  onEditProduct={async (p) => {
+                    try {
+                    const detail = await api.getSourceProduct(p.id);
+                    setEditingProduct(detail);
+                    setPresetSupplierId(null);
                     setIsProductModalOpen(true);
+                    } catch (error) { showToast(`读取商品详情失败: ${error.message}`, '✕'); }
                   }}
                   onDeleteProduct={handleDeleteProduct}
                   onOpenSupplierModal={() => setIsSupplierModalOpen(true)}
-                  onQuickDistribute={(p) => setDistributeProduct(p)}
-                  onRefreshProduct={handleRefreshProduct}
-                  onNotify={showToast}
                 />
               )}
+
+              {currentTab === 'product-creation-queue' && (
+                <ProductCreationQueueView
+                  ownerId={authUser?.id}
+                  products={products}
+                  suppliers={suppliers}
+                  onNavigateSourcing={() => setCurrentTab('sourcing')}
+                  onEditProduct={async (p) => {
+                    try {
+                      const detail = await api.getSourceProduct(p.id);
+                      setEditingProduct(detail);
+                      setPresetSupplierId(null);
+                      setIsProductModalOpen(true);
+                    } catch (error) { showToast(`读取商品详情失败: ${error.message}`, '✕'); }
+                  }}
+                  onDeleteProduct={handleDeleteProduct}
+                />
+              )}
+
+              {['product-materials', 'references'].includes(currentTab) && <ProductMaterialsView />}
+              {currentTab === 'product-video-materials' && <ProductVideoMaterialsView />}
+              {currentTab === 'product-functions' && <ProductFunctionsView />}
+              {currentTab === 'skills' && <SkillsView ownerId={authUser?.id} />}
 
               {currentTab === 'calculator' && (
                 <CalculatorView />
@@ -357,38 +402,7 @@ export default function App() {
                 <OrdersView key={currentShopId} shops={scopedShops} showToast={showToast} initialContext={{ ...orderContext, shopId: currentShopId }} />
               )}
 
-              {currentTab === 'references' && (
-                <ReferenceProductsView />
-              )}
 
-              {/* 其余标签页：复用展示原型提示，平滑引导后续开发 */}
-              {['inbox', 'ai-media'].includes(currentTab) && (
-                <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center max-w-2xl mx-auto my-12 space-y-4 shadow-2xs">
-                  <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mx-auto text-xl">
-                    ✨
-                  </div>
-                  <h2 className="text-base font-bold text-slate-900">
-                    模块就绪：{currentTab === 'inbox' ? '🚨 异常收件箱' : currentTab === 'ai-media' ? '🎨 apimart AI 生图' : currentTab === 'listing' ? '🛍️ TikTok 刊登' : '🚚 订单代发履约'}
-                  </h2>
-                  <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                    当前前置的「市场与店铺管理」和「货源商品库」已全部跑通！您可以点击下方按钮查看该模块的完整高保真交互原型。
-                  </p>
-                  <div className="pt-2 flex justify-center gap-3">
-                    <button 
-                      onClick={() => setCurrentTab('sourcing')}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold"
-                    >
-                      返回货源库
-                    </button>
-                    <button 
-                      onClick={() => setCurrentTab('home')}
-                      className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium"
-                    >
-                      返回首页
-                    </button>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </main>
@@ -417,6 +431,7 @@ export default function App() {
         onSubmit={handleSaveProduct}
         suppliers={suppliers}
         initialData={editingProduct}
+        presetSupplierId={presetSupplierId}
       />
 
       <SupplierModal
@@ -425,7 +440,12 @@ export default function App() {
         suppliers={suppliers}
         onAddSupplier={handleAddSupplier}
         onDeleteSupplier={handleDeleteSupplier}
-
+        onAddProductForSupplier={(supplierId) => {
+          setEditingProduct(null);
+          setPresetSupplierId(supplierId);
+          setIsSupplierModalOpen(false);
+          setIsProductModalOpen(true);
+        }}
       />
 
       <QuickDistributeModal

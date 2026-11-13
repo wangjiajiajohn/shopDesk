@@ -1,0 +1,7 @@
+/* Hide only the category scrollbar; preserve scrolling and keyboard focus. */
+.source-category-scroll {
+  scrollbar-width: none;
+}
+.source-category-scroll::-webkit-scrollbar {
+  display: none;
+}

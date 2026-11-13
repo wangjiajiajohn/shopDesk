@@ -42,3 +42,10 @@ logs/
 
 # Local live-development process state
 .shopdesk-dev/
+
+# Local acquisition runs, reports, backups and build checkpoints
+/output/
+
+# Acquired business media is stored on the server, not in new code commits.
+/frontend/public/product-references/*/images/
+/frontend/public/product-references/*/previews/

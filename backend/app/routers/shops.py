@@ -9,13 +9,29 @@ from ..users.auth import current_user
 
 router = APIRouter(prefix="/api/shops", tags=["店铺管理"])
 
+
+async def get_owned_shop(db: AsyncSession, user: User, shop_id: str = None) -> Shop:
+    """校验店铺归属；兼容单店铺账号未传 shop_id 的旧调用。"""
+    if shop_id:
+        shop = await db.get(Shop, shop_id)
+        if not shop or shop.user_id != str(user.id):
+            raise HTTPException(status_code=404, detail="店铺不存在")
+        return shop
+    shops = (await db.execute(
+        select(Shop).filter(Shop.user_id == str(user.id)).order_by(Shop.created_at, Shop.id)
+    )).scalars().all()
+    if len(shops) != 1:
+        raise HTTPException(status_code=400, detail="请选择店铺")
+    return shops[0]
+
+
 @router.get("", response_model=List[ShopResponse])
 async def list_shops(
     market_code: str = None,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_user),
 ):
-    query = select(Shop).filter(Shop.user_id == str(user.id))
+    query = select(Shop).filter(Shop.user_id == str(user.id)).order_by(Shop.created_at, Shop.id)
     if market_code:
         query = query.filter(Shop.market_code == market_code)
     result = await db.execute(query)

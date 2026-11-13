@@ -1,17 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Store,
   Package,
   Globe2,
-  AlertTriangle,
-  Sparkles,
   ShoppingBag,
   Truck,
   Calculator,
   Library,
-  Bookmark,
   BookOpen,
+  Images,
+  Video,
+  Workflow,
   ChevronRight
 } from 'lucide-react';
 
@@ -29,57 +29,23 @@ export default function Sidebar({ currentTab, onSelectTab }) {
   const navItems = [
     { id: 'home', label: '工作台首页', icon: LayoutDashboard, badge: null, group: 'CORE' },
     { id: 'sourcing', label: '货源商品库', icon: Package, badge: 'SPU/SKU 矩阵', group: 'CORE' },
+    { id: 'product-creation-queue', label: '商品创建队列', icon: ShoppingBag, badge: null, group: 'PRODUCTION' },
+    { id: 'product-materials', label: '商品图片素材库', icon: Images, badge: null, group: 'PRODUCTION' },
+    { id: 'product-video-materials', label: '商品视频素材库', icon: Video, badge: null, group: 'PRODUCTION' },
+    { id: 'product-functions', label: '商品功能词库', icon: BookOpen, badge: null, group: 'PRODUCTION' },
+    { id: 'skills', label: 'Skill 列表', icon: Workflow, badge: null, group: 'SHARED' },
     { id: 'calculator', label: '定价计算器', icon: Calculator, badge: '保本/利润', badgeColor: 'bg-emerald-100 text-emerald-700', group: 'CORE' },
     { id: 'resources', label: '店铺资料库', icon: Library, badge: '账号/证件', badgeColor: 'bg-amber-100 text-amber-700', group: 'CORE' },
-    { id: 'references', label: '参考商品', icon: Bookmark, badge: '选品素材', badgeColor: 'bg-rose-100 text-rose-700', group: 'CORE' },
-    { id: 'inbox', label: '异常收件箱', icon: AlertTriangle, badge: null, group: 'OPS' },
-    { id: 'ai-media', label: '素材与 AI 生图', icon: Sparkles, badge: 'apimart', badgeColor: 'bg-purple-100 text-purple-700', group: 'OPS' },
     { id: 'listing', label: 'TikTok 店铺商品', icon: ShoppingBag, badge: 'API 同步', badgeColor: 'bg-indigo-100 text-indigo-700', group: 'OPS' },
     { id: 'orders', label: '订单推仓履约', icon: Truck, badge: 'API 同步', badgeColor: 'bg-indigo-100 text-indigo-700', group: 'OPS' },
   ];
 
   // 知识库父级：当前停留在任一子项时高亮
   const isKbActive = KB_CHILDREN.some((c) => c.id === currentTab);
-  const [kbHovered, setKbHovered] = useState(false);
-  const [kbPos, setKbPos] = useState({ top: 0, left: 0 });
-  const kbBtnRef = useRef(null);
-  const closeTimer = useRef(null);
-
-  const clearCloseTimer = () => {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-  };
-
-  const openKbPopup = () => {
-    clearCloseTimer();
-    const rect = kbBtnRef.current?.getBoundingClientRect();
-    if (rect) {
-      // 视口边界保护：浮层预估 280px 高，底部空间不足时上移，始终留 16px 边距
-      const POPUP_EST_H = 280;
-      const VIEWPORT_MARGIN = 16;
-      const maxTop = window.innerHeight - VIEWPORT_MARGIN - POPUP_EST_H;
-      const top = Math.max(VIEWPORT_MARGIN, Math.min(rect.top, maxTop));
-      setKbPos({ top, left: rect.right + 8 });
-    }
-    setKbHovered(true);
-  };
-
-  const scheduleCloseKb = () => {
-    clearCloseTimer();
-    // 150ms 桥接间隙：鼠标从按钮移到浮层途中不关闭
-    closeTimer.current = setTimeout(() => setKbHovered(false), 150);
-  };
-
+  const [kbExpanded, setKbExpanded] = useState(isKbActive);
   useEffect(() => {
-    const closeOnResize = () => setKbHovered(false);
-    window.addEventListener('resize', closeOnResize);
-    return () => {
-      clearCloseTimer();
-      window.removeEventListener('resize', closeOnResize);
-    };
-  }, []);
+    if (KB_CHILDREN.some(c => c.id === currentTab)) setKbExpanded(true);
+  }, [currentTab]);
 
   const renderNavButton = (item) => {
     const Icon = item.icon;
@@ -113,7 +79,6 @@ export default function Sidebar({ currentTab, onSelectTab }) {
     <aside className="w-60 bg-white border-r border-slate-200 flex flex-col p-3 select-none shrink-0">
       <nav
         className="space-y-1 text-xs flex-1 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-width:thin]"
-        onScroll={() => setKbHovered(false)}
       >
         <div className="text-[11px] font-semibold text-slate-400 px-3 py-1 uppercase tracking-wider">
           开店与供给初始化
@@ -121,11 +86,17 @@ export default function Sidebar({ currentTab, onSelectTab }) {
 
         {navItems.filter(i => i.group === 'CORE').map(renderNavButton)}
 
+        <div className="pt-4 text-[11px] font-semibold text-slate-400 px-3 py-1">生产与素材</div>
+        {navItems.filter(i => i.group === 'PRODUCTION').map(renderNavButton)}
+
         <div className="pt-4 text-[11px] font-semibold text-slate-400 px-3 py-1 uppercase tracking-wider">
           日常运营闭环
         </div>
 
         {navItems.filter(i => i.group === 'OPS').map(renderNavButton)}
+
+        <div className="pt-4 text-[11px] font-semibold text-slate-400 px-3 py-1">共享资源</div>
+        {navItems.filter(i => i.group === 'SHARED').map(renderNavButton)}
 
         <div className="pt-4 text-[11px] font-semibold text-slate-400 px-3 py-1 uppercase tracking-wider">
           学习与参考
@@ -133,29 +104,14 @@ export default function Sidebar({ currentTab, onSelectTab }) {
 
         {renderNavButton({ id: 'api-catalog', label: 'TikTok 接口资料库', icon: BookOpen })}
 
-        {/* 知识库：hover 触发 fixed 浮层（浮层渲染在组件根部，不受 nav 滚动裁剪） */}
-        <div
-          ref={kbBtnRef}
-          onMouseEnter={openKbPopup}
-          onMouseLeave={scheduleCloseKb}
-        >
-          <button
-            onClick={() => onSelectTab(KB_CHILDREN[0].id)}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition text-left ${
-              isKbActive ? 'bg-rose-50 text-rose-700' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <BookOpen className={`w-4 h-4 ${isKbActive ? 'text-rose-600' : 'text-slate-500'}`} />
-              <span>知识库</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${isKbActive ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
-                6 专题
-              </span>
-              <ChevronRight className={`w-3.5 h-3.5 transition-colors ${kbHovered ? 'text-rose-500' : ''}`} />
-            </div>
+        <div>
+          <button type="button" aria-expanded={kbExpanded} aria-controls="knowledge-subnav" onClick={()=>setKbExpanded(value=>!value)} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 ${isKbActive ? 'bg-indigo-50 text-indigo-900' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <span className="flex items-center gap-2.5"><BookOpen aria-hidden="true" className="w-4 h-4"/><span>知识库</span></span>
+            <span className="flex items-center gap-2"><span className="text-xs text-slate-600">6 专题</span><ChevronRight aria-hidden="true" className={`w-3.5 h-3.5 ${kbExpanded ? 'rotate-90' : ''}`}/></span>
           </button>
+          <ul id="knowledge-subnav" hidden={!kbExpanded} className="ml-5 mt-1 space-y-1 border-l border-slate-200 pl-2">
+            {KB_CHILDREN.map(child=><li key={child.id}><button type="button" aria-current={currentTab===child.id ? 'page' : undefined} onClick={()=>onSelectTab(child.id)} className={`w-full px-3 py-2.5 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 ${currentTab===child.id ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-700 hover:bg-slate-100'}`}>{child.label}</button></li>)}
+          </ul>
         </div>
       </nav>
 
@@ -195,39 +151,7 @@ export default function Sidebar({ currentTab, onSelectTab }) {
         </div>
       </div>
 
-      {/* 知识库二级浮层：fixed 定位，脱离 nav 滚动容器，避免被 overflow 裁剪 */}
-      {kbHovered && (
-        <div
-          className="fixed w-52 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50"
-          style={{ top: kbPos.top, left: kbPos.left }}
-          onMouseEnter={clearCloseTimer}
-          onMouseLeave={scheduleCloseKb}
-        >
-          <div className="px-3 pb-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
-            知识库 · 6 专题
-          </div>
-          {KB_CHILDREN.map((child) => {
-            const isActive = currentTab === child.id;
-            return (
-              <button
-                key={child.id}
-                onClick={() => {
-                  onSelectTab(child.id);
-                  setKbHovered(false);
-                }}
-                className={`w-[calc(100%-0.75rem)] mx-1.5 flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition text-left ${
-                  isActive
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? 'bg-white' : 'bg-slate-300'}`} />
-                <span className="truncate">{child.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+
     </aside>
   );
 }

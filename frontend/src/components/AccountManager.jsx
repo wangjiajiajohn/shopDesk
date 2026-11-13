@@ -7,7 +7,7 @@ const EMPTY_FORM = {
   password: '', secret: '', pin: '',
 };
 
-export default function AccountManager({ accounts, onChanged, showToast }) {
+export default function AccountManager({ shopId, accounts, onChanged, showToast }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -71,7 +71,7 @@ export default function AccountManager({ accounts, onChanged, showToast }) {
         await api.updatePlatformAccount(editing.id, payload);
         showToast('账号已更新', '✓');
       } else {
-        await api.createPlatformAccount(form);
+        await api.createPlatformAccount(shopId, form);
         showToast('账号已加密保存', '✓');
       }
       setModalOpen(false);

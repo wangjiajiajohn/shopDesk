@@ -5,7 +5,7 @@ import {
   ImageOff, Search, Download, X, Loader2,
 } from 'lucide-react';
 import {
-  loadReferenceIndex, loadReferencePage, referenceAsset, selectReferencePage,
+  loadReferenceIndex, loadReferencePage, referenceAsset, selectReferencePage, materialNumberLabel,
 } from '../referenceProducts';
 import ReferenceCategoryCascader from '../components/ReferenceCategoryCascader';
 
@@ -126,16 +126,14 @@ function ImageGroup({ title, images, onZoom }) {
 }
 
 function Detail({ product, category, categories, onBack, onZoom }) {
-  // 同一张图可能在主副图、详情图、SKU 中重复出现，按 主副图 → 详情图 → SKU 顺序去重，只展示一次
-  const seen = new Set();
-  const unique = (list) => list.filter((i) => {
-    if (seen.has(i.asset)) return false;
-    seen.add(i.asset);
-    return true;
-  });
+  // Deduplicate within each use; a gallery image may also identify a SKU color.
+  const unique = (list, keyFor = image => image.asset) => {
+    const seen = new Set();
+    return list.filter(image => { const key = keyFor(image); if (seen.has(key)) return false; seen.add(key); return true; });
+  };
   const gallery = unique(product.images.filter((i) => i.role === '主图' || i.role.startsWith('副图')));
   const details = unique(product.images.filter((i) => i.role.startsWith('详情图')));
-  const sku = unique(product.images.filter((i) => i.role.startsWith('SKU')));
+  const sku = unique(product.images.filter((i) => i.role.startsWith('SKU')), image => `${image.asset}|${image.skuLabel || ''}`);
   const [active, setActive] = useState(0);
   const headingRef = useRef(null);
 
@@ -154,12 +152,12 @@ function Detail({ product, category, categories, onBack, onZoom }) {
   const pending = product.detailStatus && product.detailStatus !== 'available';
 
   return (
-    <div className="space-y-5 max-w-6xl">
+    <div className="space-y-5 w-full">
       <button
         onClick={onBack}
         className="text-xs font-semibold text-slate-600 hover:text-indigo-600 flex items-center gap-1.5"
       >
-        <ArrowLeft className="w-4 h-4" /> 返回参考商品
+        <ArrowLeft className="w-4 h-4" /> 返回商品图片素材库
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-5 items-start">
@@ -204,6 +202,7 @@ function Detail({ product, category, categories, onBack, onZoom }) {
 
         {/* 事实与卖点 */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4 text-xs">
+          <p className="font-semibold text-slate-900">{materialNumberLabel(product.materialNumber)}</p>
           <p className="text-[11px] font-semibold text-indigo-600">
             {shownPlacements.map((p) => `${p.category} · 第${p.rank}名`).join(' / ') || '已收录留档'}
           </p>
@@ -228,6 +227,8 @@ function Detail({ product, category, categories, onBack, onZoom }) {
             </div>
           )}
 
+          {product.salesTotalDisplay != null && <div className="bg-slate-50 rounded-lg p-3"><p className="text-xs text-slate-600">TikTok商品页累计销量</p><p className="font-semibold text-slate-900 mt-1">{product.salesTotalDisplay}</p><p className="text-xs text-slate-600 mt-1">沿用来源展示口径 · {product.salesCapturedAt ? new Date(product.salesCapturedAt).toLocaleString('zh-CN') : '采集时间未提供'}</p></div>}
+          {!!product.sourceImports?.length && <p className="text-xs text-slate-600">资料来源：{[...new Set(product.sourceImports.map(x => x.workbook))].join(' / ')}</p>}
           <dl className="grid grid-cols-2 gap-2">
             <div className="bg-slate-50 rounded-lg p-2">
               <dt className="text-[10px] text-slate-400">近 28 天销量</dt>
@@ -290,8 +291,8 @@ function Detail({ product, category, categories, onBack, onZoom }) {
       <ImageGroup title="SKU 配图" images={sku} onZoom={onZoom} />
 
       <p className="text-[10px] text-slate-400 leading-relaxed">
-        资料为采集时快照。标题、描述与图片来自 TikTok；销量、品类排名与卖点来自 FastMoss。
-        主副图、详情图与 SKU 的重复图片已去重，同一张图只展示一次；万位销量沿用来源展示口径。
+        资料为采集时快照。标题、描述与图片来自 TikTok；销量与排名以记录注明的来源及统计口径为准。
+        同组重复图片已去重；兼有SKU用途的图片保留颜色对应关系。销量沿用来源展示口径。
       </p>
     </div>
   );
@@ -449,24 +450,24 @@ export default function ReferenceProductsView() {
   }
 
   return (
-    <div className="space-y-5 max-w-6xl">
+    <div className="space-y-5 w-full">
       {/* 头部 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <span>📦 参考商品</span>
+            <span>商品图片素材库</span>
             <span className="text-xs px-2.5 py-0.5 bg-indigo-50 text-indigo-700 font-semibold rounded-full border border-indigo-200">
-              选品素材 · 墨西哥
+              所有店铺共享
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            墨西哥 TikTok 爆款参考：主图、副图、SKU 图、详情图与卖点，支持下载用于复刻
+            按账号收录参考商品的标题、主图、副图、SKU图、详情图与卖点，供所有店铺创建商品时使用。
           </p>
         </div>
         {index && (
           <div className="text-[11px] text-slate-400 self-start sm:text-right leading-relaxed">
-            <div>{index.totalProducts} 款已收录 · {index.categories.length} 个品类</div>
-            <div>采集于 {index.capturedAt} — {index.completedAt}</div>
+            <div>{new Set(index.items.map(item => item.id)).size} 款已收录 · {index.categories.length} 个品类</div>
+            <div>榜单快照：{index.capturedAt} · 链接采集时间见详情</div>
           </div>
         )}
       </div>
@@ -531,7 +532,7 @@ export default function ReferenceProductsView() {
               type="search"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="搜索标题 / 卖点 / 店铺 / 商品 ID"
+              placeholder="搜索编号 / 标题 / 卖点 / 店铺 / 商品 ID"
               className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
@@ -560,7 +561,7 @@ export default function ReferenceProductsView() {
             <span className="font-bold text-slate-700">
               {filters.category || filters.categoryPath || '全部参考商品'}
             </span>
-            <span>7 天与 28 天榜单已合并去重，按 28 天销量从高到低{filters.query && ` · 搜索「${filters.query}」`}</span>
+            <span>榜单与链接收录合并去重，榜单按 28 天销量排序，链接收录保留页面累计口径{filters.query && ` · 搜索「${filters.query}」`}</span>
           </p>
 
           {error ? (
@@ -608,6 +609,7 @@ export default function ReferenceProductsView() {
                         : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageOff className="w-5 h-5" /></div>}
                     </div>
                     <div className="p-2.5 space-y-1 flex-1 flex flex-col">
+                      <span className="text-xs font-semibold text-slate-900 tabular-nums">{materialNumberLabel(product.materialNumber)}</span>
                       <span className="text-[10px] font-semibold text-indigo-600">
                         {placement ? `${placement.category} · 第${placement.rank}名` : '已收录留档'}
                         {activeCatSet.length === 0 && placements.length > 1 && ' · 多品类'}
@@ -616,9 +618,7 @@ export default function ReferenceProductsView() {
                         {title}
                       </strong>
                       <span className="text-[10px] text-slate-500 mt-auto pt-1 leading-relaxed">
-                        近28天 <b className="text-slate-900">{product.sales28Text || '未取得'}</b>
-                        <span className="text-slate-300 mx-1">·</span>
-                        近7天 <b className="text-slate-700">{product.sales7Text || '未取得'}</b>
+                        {product.salesTotalDisplay != null && product.sales7 == null && product.sales28 == null ? <>页面累计 <b className="text-slate-900">{product.salesTotalDisplay}</b></> : <>近28天 <b className="text-slate-900">{product.sales28Text || '未取得'}</b><span className="text-slate-300 mx-1">·</span>近7天 <b className="text-slate-700">{product.sales7Text || '未取得'}</b></>}
                       </span>
                     </div>
                   </button>

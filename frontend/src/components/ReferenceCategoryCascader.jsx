@@ -6,6 +6,7 @@ import {
   mappedNamesForNode,
   flattenLeaves,
   findNodeById,
+  populatedCategoryTree,
 } from '../referenceCategoryMap';
 
 // 模块级缓存：全量官方类目树只拉一次，多次打开共享
@@ -132,7 +133,8 @@ export default function ReferenceCategoryCascader({ selectedId, selectedPath, co
   const [expanded, setExpanded] = useState(() => new Set());
   const wrapRef = useRef(null);
 
-  const allLeaves = useMemo(() => (tree ? flattenLeaves(tree) : []), [tree]);
+  const visibleTree = useMemo(() => populatedCategoryTree(tree || [], node => nodeCount(node, counts, resolveCount)), [tree, counts, resolveCount]);
+  const allLeaves = useMemo(() => flattenLeaves(visibleTree), [visibleTree]);
 
   // 打开时加载树，并把含参考商品的类目路径自动展开
   useEffect(() => {
@@ -254,7 +256,7 @@ export default function ReferenceCategoryCascader({ selectedId, selectedPath, co
           {!loading && !loadError && keyword.trim() && (
             <div className="h-72 overflow-y-auto p-1.5">
               {searchResults.length === 0 ? (
-                <div className="py-10 text-center text-xs text-slate-400">没有匹配「{keyword}」的官方叶子类目</div>
+                <div className="py-10 text-center text-xs text-slate-400">没有匹配「{keyword}」且已收录素材的类目</div>
               ) : (
                 searchResults.map((leaf) => {
                   const node = findNodeById(tree, leaf.id);
@@ -301,7 +303,8 @@ export default function ReferenceCategoryCascader({ selectedId, selectedPath, co
               >
                 全部参考商品
               </button>
-              {tree.map((node) => (
+              {!visibleTree.length && <p className="p-3 text-xs text-slate-600">暂无已收录素材的分类</p>}
+              {visibleTree.map((node) => (
                 <TreeNode
                   key={node.category_id}
                   node={node}
@@ -315,7 +318,7 @@ export default function ReferenceCategoryCascader({ selectedId, selectedPath, co
                 />
               ))}
               <p className="px-2 pt-2 pb-1 text-[10px] text-slate-400 leading-relaxed">
-                仅高亮带数字的类目已收录参考商品；灰色为 TikTok 官方类目树中暂无参考素材的节点。
+                仅显示已有素材的分类，空分类自动隐藏。
               </p>
             </div>
           )}

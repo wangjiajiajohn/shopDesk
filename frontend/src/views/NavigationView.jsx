@@ -35,7 +35,7 @@ export default function NavigationView({ onNavigateTab }) {
   const linkedCount = Object.values(websiteAccountMap).reduce((n, list) => n + list.length, 0);
 
   return (
-    <div className="space-y-5 max-w-6xl">
+    <div className="space-y-5 w-full">
       <div>
         <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
           <Globe2 className="w-5 h-5 text-indigo-600" />

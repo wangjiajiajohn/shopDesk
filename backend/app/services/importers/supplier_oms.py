@@ -12,6 +12,7 @@
 全流程 upsert，按 sku_code 幂等，可重复执行。
 """
 import json
+from datetime import datetime
 from typing import Any, Dict, List
 
 import openpyxl
@@ -159,8 +160,10 @@ async def import_supplier_oms(
         family["sizes"].add(parsed["size"])
 
     stats = {"spu_created": 0, "spu_updated": 0, "sku_created": 0, "sku_updated": 0,
-             "asset_created": 0, "asset_updated": 0}
+             "asset_created": 0, "asset_updated": 0, "spu_deactivated": 0}
     spu_reports: List[Dict[str, Any]] = []
+    sync_at = datetime.utcnow()
+    seen_spu_ids: set = set()
 
     for spu_code, family in families.items():
         skus = family["skus"]
@@ -181,6 +184,10 @@ async def import_supplier_oms(
             ],
         }
         spu, created = await _get_or_create_spu(db, spu_code, spu_payload)
+        # 本批次出现即在架；同步时间用于排查"上次还在、这次消失"
+        spu.is_active = True
+        spu.last_synced_at = sync_at
+        seen_spu_ids.add(spu.id)
         stats["spu_created" if created else "spu_updated"] += 1
 
         for order, item in enumerate(skus):
@@ -258,6 +265,16 @@ async def import_supplier_oms(
             "image_count": len(image_urls),
             "weight_g": max(weights) if weights else None,
         })
+
+    # 本周快照里消失的 SPU 不删除：置为无在架（无库存标签），预销售清单引用仍保留
+    existing_spus = (
+        await db.execute(select(SourceProduct).where(SourceProduct.supplier_id == supplier.id))
+    ).scalars().all()
+    for spu in existing_spus:
+        if spu.id not in seen_spu_ids and spu.is_active:
+            spu.is_active = False
+            spu.last_synced_at = sync_at
+            stats["spu_deactivated"] += 1
 
     await db.commit()
 

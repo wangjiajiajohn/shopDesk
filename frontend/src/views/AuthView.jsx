@@ -160,7 +160,7 @@ export default function AuthView({ onAuthSuccess }) {
               <Submit loading={loading}>登录</Submit>
               <div className="flex items-center justify-between text-xs">
                 <button type="button" onClick={() => { setMode('forgot'); setMsg(null); }} className="text-slate-400 hover:text-indigo-600">忘记密码？</button>
-                <span className="text-slate-400">还没有账号？<button type="button" onClick={() => setMode('register')} className="text-indigo-600 hover:underline">去注册</button></span>
+                <span className="text-slate-400">还没有账号？<button type="button" onClick={() => { setMode('register'); setMsg(null); }} className="text-indigo-600 hover:underline">去注册</button></span>
               </div>
             </form>
           )}

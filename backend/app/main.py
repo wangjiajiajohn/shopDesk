@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from .config import settings
 from .database import engine, Base
 from .migrations import run_sqlite_migrations
-from .routers import markets, shops, suppliers, source_products, tiktok_auth, resources, tiktok_products, tiktok_orders, tiktok_categories, ai, auth
+from .routers import markets, shops, suppliers, source_products, tiktok_auth, resources, tiktok_products, tiktok_orders, tiktok_categories, ai, auth, calculator, reference_products, registrant, presale
+from .routers import function_library, creation_configs
 from .services.ai.client import ai_client
 
 app = FastAPI(
@@ -25,6 +28,7 @@ app.include_router(markets.router)
 app.include_router(shops.router)
 app.include_router(suppliers.router)
 app.include_router(source_products.router)
+app.include_router(presale.router)
 app.include_router(tiktok_auth.router)
 app.include_router(tiktok_products.router)
 app.include_router(tiktok_categories.router)
@@ -32,6 +36,15 @@ app.include_router(tiktok_orders.router)
 app.include_router(resources.router)
 app.include_router(ai.router)
 app.include_router(auth.router)
+app.include_router(calculator.router)
+app.include_router(reference_products.router)
+app.include_router(function_library.router)
+app.include_router(creation_configs.router)
+app.include_router(registrant.router)
+
+# 公开上传文件（商品图等）
+settings.PUBLIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(settings.PUBLIC_UPLOAD_DIR)), name="uploads")
 
 @app.on_event("startup")
 async def startup_event():

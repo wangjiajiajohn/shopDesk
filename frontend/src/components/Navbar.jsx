@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ExchangeRate from './exchange-rate/ExchangeRate';
-import { Store, Globe, Plus, Bell, CheckCircle2, LogOut, User } from 'lucide-react';
+import { Store, Globe, Plus, CheckCircle2, LogOut, User } from 'lucide-react';
 
 export default function Navbar({
   markets,
@@ -77,15 +77,6 @@ export default function Navbar({
             <span>管理店铺</span>
           </button>
         </div>
-
-        {/* 异常提醒：异常收件箱模块接通前不展示数字角标，避免伪造未读数 */}
-        <button
-          onClick={() => onNavigateTab('inbox')}
-          className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
-          title="异常收件箱（建设中）"
-        >
-          <Bell className="w-4 h-4 text-slate-600" />
-        </button>
 
         <div className="h-6 w-px bg-slate-200"></div>
 

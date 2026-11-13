@@ -74,3 +74,12 @@ export function flattenLeaves(nodes, chain = [], acc = []) {
   }
   return acc;
 }
+
+// Keep populated branches and their ancestors; never mutate the official tree.
+export function populatedCategoryTree(nodes, countNode) {
+  return nodes.flatMap(node => {
+    const children = populatedCategoryTree(node.children || [], countNode);
+    if (countNode(node) <= 0 && children.length === 0) return [];
+    return [{ ...node, ...(node.children ? { children } : {}) }];
+  });
+}

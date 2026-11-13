@@ -89,9 +89,9 @@
 /* 页面容器（对应 Movae .page-content） */
 .kb-scope .page-content {
   width: 100%;
-  max-width: var(--content-width);
+  max-width: none;
   margin: auto;
-  padding: 0 var(--page-gutter);
+  padding: 0;
 }
 
 /* 工作台内嵌时不需要 Movae 的 48px 顶部留白，收敛为 24px */

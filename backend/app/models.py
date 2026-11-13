@@ -83,6 +83,7 @@ class PlatformAccount(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String(36), ForeignKey("user.id"), nullable=True, index=True)
+    shop_id = Column(String(36), ForeignKey("shops.id"), nullable=False, index=True)
     platform = Column(String(100), nullable=False, index=True)      # 如 TikTok Shop / 领星 OMS
     purpose = Column(String(100), nullable=True)                    # 用途，如 墨西哥本地店铺
     account = Column(String(255), nullable=False)                   # 登录账号（明文，用于识别）
@@ -131,7 +132,13 @@ class SourceProduct(Base):
     tiktok_category_id = Column(String(32), nullable=True, index=True)  # 关联 TikTok 官方叶子类目 ID，旧数据为空
     source_url = Column(Text, nullable=True)                        # 采购原链接
     main_image = Column(Text, nullable=True)                        # 货源主图
-    images = Column(JSON, default=list)                             # 轮播副图列表
+    images = Column(JSON, default=list)                             # 轮播副图列表（用于素材加工、三视图生成）
+    composition = Column(Text, nullable=True)                       # 商品成分（如"锦纶62%, 氨纶38%"）
+    size_chart = Column(JSON, nullable=True)                        # 尺码表 {"columns":[...], "rows":[[...],...]}
+    source_data = Column(JSON, nullable=True)                        # 原始资料、图片角色、提取结果、价格口径与来源问题
+
+    # SPU 级采购价（一口价）；为空时若有 price_tier_* 则用阶梯价
+    supply_price = Column(Float, nullable=True)
 
     # 核心阶梯价 (RMB)。1688 类供应商使用；MXN 一口价供应商（如深圳源创 OMS）可为空，
     # 价格下沉到 source_product_skus.supply_price
@@ -152,6 +159,10 @@ class SourceProduct(Base):
 
     stock_quantity = Column(Integer, default=999)                   # 现货可用库存（SKU 库存聚合缓存）
     specs = Column(JSON, default=list)                              # 规格 (颜色, 尺码等)
+
+    # 爬虫同步状态：每周同步时货源池里消失的 SPU 不删除，置 is_active=False 保留（无库存标签）
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    last_synced_at = Column(DateTime, nullable=True)                # 最近一次爬虫/导入同步时间
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -375,6 +386,7 @@ class ShopOrder(Base):
     tiktok_create_time = Column(Integer, nullable=True, index=True)
     tiktok_update_time = Column(Integer, nullable=True)
 
+    # 平台为订单计算的截止时间；缺失时不自行套用固定小时数。
     rts_sla_time = Column(Integer, nullable=True)
     tts_sla_time = Column(Integer, nullable=True)
     cancel_order_sla_time = Column(Integer, nullable=True)
@@ -388,3 +400,75 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     """用户表（fastapi-users 提供 id/email/hashed_password/is_active/is_superuser/is_verified）"""
     __tablename__ = "user"
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ReferenceDataset(Base):
+    """参考商品数据集（按用户隔离）。每个用户可有一套独立的选品快照。"""
+    __tablename__ = "reference_datasets"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("user.id"), nullable=False, index=True)
+    dataset_id = Column(String(64), nullable=False)              # 如 mx-20261107
+    market = Column(String(50), nullable=False)                  # 如 墨西哥
+    captured_at = Column(String(20), nullable=True)
+    categories = Column(JSON, default=list)                      # [{name, count}]
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ReferenceProduct(Base):
+    """参考商品（按用户隔离）。index 摘要 + detail 详情均存 JSON。"""
+    __tablename__ = "reference_products"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("user.id"), nullable=False, index=True)
+    dataset_id = Column(String(36), ForeignKey("reference_datasets.id"), nullable=False, index=True)
+    product_id = Column(String(32), nullable=False, index=True)  # 原始 TikTok 商品 ID
+    index_data = Column(JSON, default=dict)                      # index.json 中的 item
+    detail_data = Column(JSON, default=dict)                     # products/{id}.json
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class RegistrantProfile(Base):
+    """店铺注册人资料（按店铺隔离）。身份信息、税务信息以 JSON 存储。"""
+    __tablename__ = "registrant_profiles"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("user.id"), nullable=False, index=True)
+    shop_id = Column(String(36), ForeignKey("shops.id"), nullable=False, unique=True, index=True)
+    identity_fields = Column(JSON, default=list)                 # [[label, value], ...]
+    tax_fields = Column(JSON, default=list)                       # [[label, value], ...]
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PresalePick(Base):
+    """预销售清单（账号级）。只记录"该账号选中了哪个货源 SPU"，不复制商品数据。
+
+    选品阶段尚未决定铺哪个店铺，故挂 user_id；后续生成素材/刊登时再按店铺分叉。
+    爬虫删除/下架货源不级联清理本表，失效状态通过 SourceProduct.is_active 体现。
+    """
+    __tablename__ = "presale_picks"
+    __table_args__ = (
+        UniqueConstraint("user_id", "source_product_id", name="uq_presale_user_product"),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("user.id"), nullable=False, index=True)
+    source_product_id = Column(String(36), ForeignKey("source_products.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ProductFunctionLibrary(Base):
+    """Account shared vocabulary; independent of any shop."""
+    __tablename__ = "product_function_libraries"
+    user_id = Column(String(36), ForeignKey("user.id"), primary_key=True)
+    data = Column(JSON, default=dict)
+
+
+class ProductCreationConfig(Base):
+    """Server persisted creation settings, scoped to account and source product."""
+    __tablename__ = "product_creation_configs"
+    user_id = Column(String(36), ForeignKey("user.id"), primary_key=True)
+    source_product_id = Column(String(36), ForeignKey("source_products.id"), primary_key=True)
+    data = Column(JSON, default=dict)
+    revision = Column(Integer, default=1, nullable=False)

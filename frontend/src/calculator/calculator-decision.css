@@ -1,6 +1,7 @@
 /* Decision layout: grouped inputs and a persistent result at desktop sizes. */
-.calculator-decision-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--space-6); margin-top: var(--space-4); align-items: start; }
-.calculator-decision-inputs { display: grid; gap: var(--space-4); min-width: 0; }
+.calculator-decision-page { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.calculator-decision-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); margin-top: var(--space-4); align-items: stretch; }
+.calculator-decision-inputs { display: grid; align-content: start; gap: var(--space-4); min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--color-scrollbar) transparent; }
 .calculator-decision-inputs .calculator-panel { background: var(--color-surface-muted); }
 .calculator-decision-inputs h2 { display: flex; align-items: center; gap: var(--space-3); }
 .calculator-step { display: inline-grid; place-items: center; width: var(--space-8); height: var(--space-8); border-radius: var(--radius-calculator-pill); background: var(--color-primary); color: var(--color-on-inverse); font-size: var(--font-body); flex-shrink: 0; }
@@ -41,7 +42,7 @@
 .calculator-commission-channel > label { color: var(--color-secondary); }
 .calculator-channel-trigger { justify-content: space-between; width: 100%; min-height: var(--space-12); margin: 0; border-radius: var(--radius-control); background: var(--color-canvas); }
 /* Right panel: budget, pricing chain, payment, then supporting figures. */
-.calculator-decision-results { --decision-state: var(--color-inverse-success); --decision-divider: color-mix(in srgb, var(--color-on-inverse) 14%, var(--color-inverse)); position: sticky; top: calc(var(--header-height) + var(--font-title) * 1.5 + var(--font-body) * 1.5 + var(--space-8) + var(--space-2) + var(--space-4)); max-height: calc(100dvh - var(--header-height) - var(--font-title) * 1.5 - var(--font-body) * 1.5 - var(--space-8) - var(--space-2) - var(--space-8)); overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--color-scrollbar) transparent; min-width: 0; padding: var(--space-6); background: var(--color-inverse); color: var(--color-on-inverse); border-radius: var(--radius-panel); }
+.calculator-decision-results { --decision-state: var(--color-inverse-success); --decision-divider: color-mix(in srgb, var(--color-on-inverse) 14%, var(--color-inverse)); min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--color-scrollbar) transparent; min-width: 0; padding: var(--space-6); background: var(--color-inverse); color: var(--color-on-inverse); border-radius: var(--radius-panel); }
 .calculator-decision-results[data-state="near"] { --decision-state: var(--color-inverse-warning); }
 .calculator-decision-results[data-state="below"] { --decision-state: var(--color-inverse-error); }
 .calculator-decision-results[data-state="empty"] { --decision-state: var(--color-inverse-secondary); }
@@ -208,7 +209,8 @@
 .calculator-mobile-margin { display: none; }
 
 @media (max-width: 720px) {
-  .calculator-decision-layout { grid-template-columns: 1fr; }
+  .calculator-decision-page { height: auto; }
+  .calculator-decision-layout { flex: none; grid-template-columns: 1fr; }
   .calculator-mobile-margin { display: block; margin-top: var(--space-2); line-height: 1.5; }
   .calculator-result-heading { flex-direction: column; align-items: flex-start; }
   .calculator-result-heading h2 { padding-right: calc(var(--space-12) * 2 + var(--space-2)); }

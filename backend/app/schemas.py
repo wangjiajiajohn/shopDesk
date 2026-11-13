@@ -159,11 +159,15 @@ class SourceProductBase(BaseModel):
     source_url: Optional[str] = None
     main_image: Optional[str] = None
     images: List[str] = []
+    composition: Optional[str] = None                  # 商品成分（如"锦纶62%, 氨纶38%"）
+    size_chart: Optional[Any] = None                    # 尺码表 {"columns":[...], "rows":[[...],...]}
+    source_data: Optional[dict] = None                 # 来源与提取结果，原图不被生成稿覆盖
+    supply_price: Optional[float] = None                # SPU 级一口采购价
+    supply_currency: Optional[str] = None
     # RMB 阶梯价：1688 模式必填；一口价供应商（MXN）留空，价格在 SKU 级
     price_tier_1: Optional[float] = None
     price_tier_2: Optional[float] = None
     price_tier_3: Optional[float] = None
-    supply_currency: Optional[str] = None
     customs_declaration: Optional[Any] = None
     weight_g: int = 200
     package_length_cm: float = 20.0
@@ -171,6 +175,8 @@ class SourceProductBase(BaseModel):
     package_height_cm: float = 3.0
     stock_quantity: int = 999
     specs: List[Any] = []
+    is_active: bool = True                          # 爬虫同步在架状态；False=货源已消失，打无库存标签保留
+    last_synced_at: Optional[datetime] = None
 
 class SourceProductCreate(SourceProductBase):
     pass
@@ -183,6 +189,10 @@ class SourceProductUpdate(BaseModel):
     source_url: Optional[str] = None
     main_image: Optional[str] = None
     images: Optional[List[str]] = None
+    composition: Optional[str] = None
+    size_chart: Optional[Any] = None
+    source_data: Optional[dict] = None
+    supply_price: Optional[float] = None
     price_tier_1: Optional[float] = None
     price_tier_2: Optional[float] = None
     price_tier_3: Optional[float] = None
@@ -209,6 +219,7 @@ class SourceProductResponse(SourceProductBase):
     is_bulky: Optional[bool] = None
     tier_2_discount_percent: Optional[float] = None
     tier_3_discount_percent: Optional[float] = None
+    is_picked: Optional[bool] = None                # 当前账号是否已加入预销售清单
 
     class Config:
         from_attributes = True
@@ -283,6 +294,7 @@ class PlatformAccountUpdate(BaseModel):
 
 class PlatformAccountResponse(PlatformAccountBase):
     id: str
+    shop_id: str
     # 只回掩码与"是否存在"，永不回密文
     password_masked: Optional[str] = None
     secret_masked: Optional[str] = None

@@ -257,7 +257,7 @@ export default function TikTokProductsView({ shops, showToast }) {
   }
 
   return (
-    <div className="space-y-5 max-w-6xl">
+    <div className="space-y-5 w-full">
       {/* 头部 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
